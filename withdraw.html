@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SwiftDuel | Financial Terminal</title>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root { 
+            --p1: #6366f1; --p2: #ec4899; --p3: #8b5cf6;
+            --dark: #0f172a; --white: rgba(255, 255, 255, 0.98);
+            --success: #10b981; --err: #ef4444; --warn: #facc15;
+            --glass: rgba(255, 255, 255, 0.05);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        
+        body { 
+            margin: 0; padding: 0; min-height: 100vh;
+            font-family: 'Inter', -apple-system, sans-serif; 
+            background: linear-gradient(-45deg, #1e1b4b, #312e81, #1e293b, #0f172a); 
+            background-size: 400% 400%;
+            animation: flow 15s ease infinite;
+            color: white; padding-bottom: 140px; 
+            overflow-x: hidden;
+        }
+        @keyframes flow { 0% {background-position: 0% 50%;} 50% {background-position: 100% 50%;} 100% {background-position: 0% 50%;} }
+
+        header {
+            background: var(--white); padding: 20px 25px;
+            border-bottom-left-radius: 35px; border-bottom-right-radius: 35px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); position: sticky; top: 0; z-index: 100;
+        }
+        .user-meta span { font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+        .user-meta h2 { margin: 0; font-size: 18px; color: var(--dark); font-weight: 950; text-transform: uppercase; }
+        
+        .balance-pill {
+            background: var(--dark); color: #fff; padding: 10px 18px; border-radius: 50px;
+            font-weight: 900; font-size: 15px; border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .container { padding: 20px; max-width: 450px; margin: auto; }
+
+        .wallet-card {
+            background: var(--white); color: var(--dark);
+            padding: 45px 30px; border-radius: 35px; text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2); position: relative;
+            margin-top: 10px; z-index: 10;
+        }
+        .wallet-card::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 5px; background: linear-gradient(to right, var(--p1), var(--p2)); border-top-left-radius: 35px; border-top-right-radius: 35px; }
+        
+        .wallet-card span { font-size: 10px; font-weight: 900; opacity: 0.4; text-transform: uppercase; letter-spacing: 2px; }
+        .wallet-card h1 { margin: 10px 0 30px; font-size: 52px; font-weight: 950; letter-spacing: -3px; }
+
+        .trigger-btn {
+            width: 100%; padding: 22px; border: none; border-radius: 20px;
+            background: linear-gradient(135deg, var(--p1), var(--p3));
+            color: white; font-weight: 950; font-size: 16px; text-transform: uppercase;
+            cursor: pointer; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
+            transition: 0.2s;
+        }
+
+        /* NEW POPUP TOAST STYLING */
+        #payoutToast {
+            position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
+            width: 85%; max-width: 350px; background: #fff; color: #000;
+            padding: 20px; border-radius: 20px; z-index: 9999;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            display: flex; align-items: center; gap: 15px;
+            transition: top 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        #payoutToast.active { top: 30px; }
+        #payoutToast .icon { font-size: 24px; }
+        #payoutToast .msg { font-size: 13px; font-weight: 800; text-transform: uppercase; line-height: 1.2; }
+
+        .security-banner {
+            margin: 30px 5px; padding: 22px; border-radius: 25px;
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+            display: flex; align-items: center; gap: 15px; backdrop-filter: blur(10px);
+        }
+        .security-banner div h4 { margin: 0; font-size: 14px; color: var(--p1); font-weight: 800; }
+        .security-banner div p { margin: 5px 0 0; font-size: 11px; opacity: 0.5; line-height: 1.4; font-weight: 600; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.92); backdrop-filter: blur(20px);
+            display: none; align-items: flex-end; z-index: 2000;
+        }
+        .modal-content {
+            background: var(--white); color: var(--dark); width: 100%;
+            padding: 40px 25px; border-top-left-radius: 40px; border-top-right-radius: 40px;
+            animation: slideUp 0.4s cubic-bezier(0.1, 1, 0.1, 1);
+            max-height: 90vh; overflow-y: auto;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        #modalError { background: #fef2f2; color: #ef4444; padding: 15px; border-radius: 15px; font-size: 11px; font-weight: 800; margin-bottom: 20px; display: none; text-align: center; border: 1px solid #fee2e2; }
+
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; font-size: 10px; font-weight: 900; color: #94a3b8; margin: 0 0 8px 5px; text-transform: uppercase; }
+        .fine-input { width: 100%; padding: 18px; border-radius: 18px; border: 2px solid #f1f5f9; background: #f8fafc; font-size: 15px; font-weight: 700; }
+
+        .bank-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+        .bank-opt { background: #f1f5f9; padding: 14px 5px; border-radius: 15px; font-size: 10px; font-weight: 900; text-align: center; cursor: pointer; color: #64748b; border: 2px solid transparent; }
+        .bank-opt.selected { background: var(--dark); color: white; border-color: var(--p1); }
+
+        .section-label { color: rgba(255,255,255,0.5); font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 15px; display: block; padding-left: 5px; }
+
+        .history-card { background: var(--glass); backdrop-filter: blur(15px); padding: 25px; border-radius: 30px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.08); position: relative; overflow: hidden; }
+        .history-card b { display: block; font-size: 22px; color: #fff; margin-bottom: 4px; letter-spacing: -1px; }
+        .history-card span { font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 700; display: block; margin-bottom: 15px; }
+        
+        .status-badge { display: inline-block; font-size: 10px; font-weight: 950; text-transform: uppercase; padding: 8px 16px; border-radius: 12px; letter-spacing: 1px; }
+        .status-Pending { background: rgba(250, 204, 21, 0.15); color: var(--warn); border: 1px solid var(--warn); }
+        .status-Paid { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid var(--success); }
+        .status-Rejected { background: rgba(239, 68, 68, 0.15); color: var(--err); border: 1px solid var(--err); }
+
+        .nav { position: fixed; bottom: 0; width: 100%; background: #fff; padding: 18px 0; display: flex; justify-content: space-around; box-shadow: 0 -10px 40px rgba(0,0,0,0.5); border-top-left-radius: 35px; border-top-right-radius: 35px; z-index: 1000; }
+        .nav-link { text-decoration: none; text-align: center; color: #cbd5e1; font-size: 11px; font-weight: 800; width: 25%; }
+        .nav-link.active { color: var(--p1); }
+        .nav-link i { display: block; font-size: 22px; margin-bottom: 4px; font-style: normal; }
+    </style>
+</head>
+<body>
+
+    <div id="payoutToast">
+        <div class="icon" id="toastIcon">⚠️</div>
+        <div class="msg" id="toastMsg">Notification Message</div>
+    </div>
+
+    <header>
+        <div class="user-meta">
+            <span>Financial Desk</span>
+            <h2 id="uDisplay">...</h2>
+        </div>
+        <div id="mainBalance" class="balance-pill">₦0.00</div>
+    </header>
+
+    <div class="container">
+        <div class="wallet-card">
+            <span>WITHDRAWABLE BALANCE</span>
+            <h1 id="userBal">₦0.00</h1>
+            <button class="trigger-btn" onclick="toggleModal(true)">Initiate Payout</button>
+        </div>
+
+        <div class="security-banner">
+            <span style="font-size: 28px;">🛡️</span>
+            <div>
+                <h4>Secure Infrastructure</h4>
+                <p>Transactions are encrypted. Payouts are usually processed within 1-6 hours.</p>
+            </div>
+        </div>
+
+        <span class="section-label">Payout Activity</span>
+        <div id="payoutHistory">
+            <p style="text-align:center; padding:50px; opacity:0.2; font-size:12px; font-weight: 800;">SYNCHRONIZING...</p>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="withdrawModal">
+        <div class="modal-content">
+            <h2 style="margin: 0 0 5px; font-size: 28px; letter-spacing: -1.5px;">Request Payout</h2>
+            <p style="font-size: 13px; color: #64748b; font-weight: 700; margin-bottom: 30px;">Funds will be sent to your bank account.</p>
+            
+            <div id="modalError"></div>
+
+            <div class="input-group">
+                <label>Account Holder Name</label>
+                <input type="text" id="holderName" class="fine-input" placeholder="Full name on account">
+            </div>
+
+            <div class="input-group">
+                <label>Select Your Bank</label>
+                <div class="bank-grid">
+                    <div class="bank-opt" onclick="selBank(this, 'OPAY')">OPAY</div>
+                    <div class="bank-opt" onclick="selBank(this, 'PALMPAY')">PALMPAY</div>
+                    <div class="bank-opt" onclick="selBank(this, 'KUDA')">KUDA</div>
+                    <div class="bank-opt" onclick="selBank(this, 'GTBANK')">GTBANK</div>
+                    <div class="bank-opt" onclick="selBank(this, 'MONIEPOINT')">MONIEPOINT</div>
+                    <div class="bank-opt" onclick="selBank(this, 'ZENITH')">ZENITH</div>
+                    <div class="bank-opt" onclick="selBank(this, 'UBA')">UBA</div>
+                    <div class="bank-opt" onclick="selBank(this, 'ACCESS')">ACCESS</div>
+                    <div class="bank-opt" onclick="selBank(this, 'VFD')">VFD</div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>10-Digit Account Number</label>
+                <input type="number" id="accountNum" class="fine-input" placeholder="0123456789" oninput="if(this.value.length > 10) this.value = this.value.slice(0, 10)">
+            </div>
+
+            <div class="input-group">
+                <label>Payout Amount (₦)</label>
+                <input type="number" id="amount" class="fine-input" placeholder="Min 500">
+            </div>
+
+            <button class="trigger-btn" id="subBtn" onclick="processPayout()">Submit Request</button>
+            <button class="trigger-btn" style="background: #f1f5f9; color: #94a3b8; margin-top: 12px; box-shadow: none;" onclick="toggleModal(false)">Discard</button>
+        </div>
+    </div>
+
+    <nav class="nav">
+        <a href="dashboard.html" class="nav-link"><i>🕹️</i><span>Lobby</span></a>
+        <a href="refer.html" class="nav-link"><i>👥</i><span>Refer</span></a>
+        <a href="recharge.html" class="nav-link"><i>💳</i><span>Deposit</span></a>
+        <a href="withdraw.html" class="nav-link active"><i>💰</i><span>Payout</span></a>
+    </nav>
+
+    <script>
+        const firebaseConfig = { 
+            apiKey: "AIzaSyDQ3uDQ2h61dDNeRowTpItGgrZridn3s40", 
+            authDomain: "swiftduel.firebaseapp.com", 
+            projectId: "swiftduel", 
+            storageBucket: "swiftduel.firebasestorage.app", 
+            messagingSenderId: "114652592444", 
+            appId: "1:114652592444:web:19ce34c0a6af62c4de0639" 
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // Local Sync elements
+        const balEl = document.getElementById('mainBalance');
+        const userBalEl = document.getElementById('userBal');
+        const nameEl = document.getElementById('uDisplay');
+
+        let currentBalance = 0;
+        let selectedBank = "";
+
+        // Popup function
+        function triggerPopup(msg, type = 'err') {
+            const toast = document.getElementById('payoutToast');
+            const icon = document.getElementById('toastIcon');
+            const message = document.getElementById('toastMsg');
+            
+            icon.innerText = type === 'success' ? '✅' : '❌';
+            message.innerText = msg;
+            toast.style.borderLeft = type === 'success' ? '6px solid #10b981' : '6px solid #ef4444';
+            
+            toast.classList.add('active');
+            setTimeout(() => { toast.classList.remove('active'); }, 3500);
+        }
+
+        // 1. IMMEDIATE LOCAL SYNC
+        const savedName = localStorage.getItem('last_user_name');
+        const savedBal = localStorage.getItem('last_user_bal') || "0.00";
+        if (savedName) nameEl.innerText = savedName.toUpperCase();
+        balEl.innerText = "₦" + parseFloat(savedBal).toLocaleString();
+        userBalEl.innerText = "₦" + parseFloat(savedBal).toLocaleString();
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                db.collection('users').doc(user.uid).onSnapshot(doc => {
+                    if(doc.exists) {
+                        const data = doc.data();
+                        currentBalance = data.balance || 0;
+                        const formatted = currentBalance.toLocaleString(undefined, {minimumFractionDigits: 2});
+                        
+                        userBalEl.innerText = "₦" + formatted;
+                        balEl.innerText = "₦" + formatted;
+                        localStorage.setItem('last_user_bal', currentBalance);
+
+                        const realName = data.username || data.name || "WARRIOR";
+                        nameEl.innerText = realName.toUpperCase();
+                        localStorage.setItem('last_user_name', realName);
+                    }
+                });
+                loadHistory(user.uid);
+            } else { window.location.href = "index.html"; }
+        });
+
+        function selBank(el, name) {
+            document.querySelectorAll('.bank-opt').forEach(o => o.classList.remove('selected'));
+            el.classList.add('selected'); selectedBank = name;
+        }
+
+        function toggleModal(s) {
+            document.getElementById('withdrawModal').style.display = s ? 'flex' : 'none';
+            document.getElementById('modalError').style.display = 'none';
+        }
+
+        async function processPayout() {
+            const hName = document.getElementById('holderName').value;
+            const aNum = document.getElementById('accountNum').value;
+            const amt = parseFloat(document.getElementById('amount').value);
+            const subBtn = document.getElementById('subBtn');
+
+            // PRECISE VALIDATION PROMPTS
+            if(!hName) {
+                triggerPopup("Missing Info: Please input your Account Holder Name.");
+                return;
+            }
+            if(!selectedBank) {
+                triggerPopup("Bank Required: Select a bank from the list above.");
+                return;
+            }
+            if(aNum.length !== 10) {
+                triggerPopup("Invalid Number: Account number must be exactly 10 digits.");
+                return;
+            }
+            if(isNaN(amt)) {
+                triggerPopup("Invalid Amount: Please enter a numeric value.");
+                return;
+            }
+            if(amt < 500) {
+                triggerPopup("Amount Too Small: Minimum payout is ₦500.00");
+                return;
+            }
+            if(amt > currentBalance) {
+                triggerPopup("Insufficient Funds: Your balance is too low for this payout.");
+                return;
+            }
+
+            subBtn.disabled = true;
+            subBtn.innerText = "ENCRYPTING...";
+
+            try {
+                await db.collection('withdrawals').add({
+                    uid: auth.currentUser.uid,
+                    accountName: hName,
+                    bank: selectedBank,
+                    account: aNum,
+                    amount: amt,
+                    status: 'Pending',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                await db.collection('users').doc(auth.currentUser.uid).update({ 
+                    balance: firebase.firestore.FieldValue.increment(-amt) 
+                });
+
+                toggleModal(false);
+                triggerPopup("Success: Request sent to Boss Panel!", 'success');
+            } catch(e) { 
+                triggerPopup("System Error: " + e.message);
+            } finally {
+                subBtn.disabled = false;
+                subBtn.innerText = "Submit Request";
+            }
+        }
+
+        function loadHistory(uid) {
+            db.collection('withdrawals').where('uid', '==', uid).onSnapshot(snap => {
+                const list = document.getElementById('payoutHistory');
+                if(snap.empty) { 
+                    list.innerHTML = "<p style='text-align:center; opacity:0.2; padding: 40px; font-size:12px; font-weight:800;'>NO PAYOUT HISTORY</p>"; 
+                    return; 
+                }
+                const docs = snap.docs.sort((a, b) => (b.data().createdAt?.seconds || 0) - (a.data().createdAt?.seconds || 0));
+                list.innerHTML = "";
+                docs.forEach(doc => {
+                    const d = doc.data();
+                    let sClass = "status-Pending";
+                    let sRaw = d.status || 'Pending';
+                    
+                    if(['Paid', 'Success'].includes(sRaw)) sClass = "status-Paid";
+                    if(['Rejected', 'Failed'].includes(sRaw)) sClass = "status-Rejected";
+
+                    list.innerHTML += `
+                        <div class="history-card">
+                            <b>₦${(d.amount || 0).toLocaleString()}</b>
+                            <span>${d.bank || d.bankName} • ${d.account || d.accountNum}</span>
+                            <div class="status-badge ${sClass}">${sRaw}</div>
+                        </div>`;
+                });
+            });
+        }
+    </script>
+</body>
+</html>

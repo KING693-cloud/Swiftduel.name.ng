@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SwiftDuel | Miner Flash-Vault</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --p1: #6366f1; --p2: #ec4899; --dark: #070b14;
+            --white: #ffffff; --gold: #facc15; --glass: rgba(255,255,255,0.05);
+            --danger: #ff4757; --success: #2ed573; --tile: #1e293b;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; margin: 0; padding: 0; user-select: none; }
+
+        body {
+            width: 100vw; height: 100dvh; font-family: 'Inter', system-ui, sans-serif;
+            background: radial-gradient(circle at top, #1e1b4b, #070b14);
+            color: white; display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        header { 
+            width: 100%; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; 
+            background: rgba(7, 11, 20, 0.95); border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .bal-pill { background: var(--white); color: var(--dark); padding: 10px 20px; border-radius: 50px; font-weight: 950; font-size: 15px; }
+
+        .content { flex: 1; display: flex; flex-direction: column; justify-content: space-around; align-items: center; padding: 15px; }
+
+        #statusMsg { font-size: 10px; font-weight: 950; color: var(--p2); letter-spacing: 2px; text-transform: uppercase; }
+
+        .mine-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: 100%; max-width: 360px; }
+
+        .tile {
+            aspect-ratio: 1; background: var(--tile); border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; cursor: pointer; border: 1px solid rgba(255,255,255,0.05);
+            transition: 0.15s; color: rgba(255,255,255,0.01);
+        }
+
+        .tile.gem { background: var(--success); color: white; transform: scale(0.9); border: none; }
+        .tile.bomb { background: var(--danger); color: white; border: none; animation: pop 0.2s; }
+
+        @keyframes pop { 0% {transform:scale(1)} 50% {transform:scale(1.1)} 100% {transform:scale(1)} }
+
+        .controls { width: 100%; max-width: 360px; }
+        .input-row { position: relative; margin-bottom: 15px; }
+        .input-row span { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); font-weight: 950; color: var(--gold); }
+        .input-row input {
+            width: 100%; background: #000; border: 2px solid #334155; color: white;
+            padding: 18px 15px 18px 45px; border-radius: 15px; font-size: 22px; font-weight: 950; text-align: center;
+        }
+
+        .btn { width: 100%; padding: 20px; border-radius: 15px; border: none; font-weight: 950; text-transform: uppercase; cursor: pointer; }
+        .btn-start { background: linear-gradient(135deg, var(--p1), var(--p2)); color: white; }
+        .btn-cash { background: var(--gold); color: var(--dark); display: none; }
+
+        .overlay { position: fixed; inset: 0; background: rgba(7, 11, 20, 0.98); display: none; justify-content: center; align-items: center; z-index: 9999; }
+        .modal { background: white; color: var(--dark); padding: 35px; border-radius: 35px; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="game.html" style="color:white; text-decoration:none; font-weight:900; background:var(--glass); width:35px; height:35px; border-radius:10px; display:flex; align-items:center; justify-content:center;">✕</a>
+        <div class="bal-pill">₦<span id="balUI">0.00</span></div>
+    </header>
+
+    <div class="content">
+        <div id="statusMsg">GHOST VAULT: 3 MINES LOADED</div>
+        <div class="mine-grid" id="grid"></div>
+
+        <div class="controls">
+            <div id="setupArea">
+                <div class="input-row"><span>₦</span><input type="number" id="stake" value="100"></div>
+                <button class="btn btn-start" onclick="startMine()">Start Extraction</button>
+            </div>
+            <button id="cashoutBtn" class="btn btn-cash" onclick="cashout()">Cashout</button>
+        </div>
+    </div>
+
+    <div id="resOverlay" class="overlay">
+        <div class="modal">
+            <h1 id="resTitle" style="font-size: 40px; font-weight: 950; letter-spacing: -2px;">WIN</h1>
+            <p id="resSub" style="font-weight: 800; color: #64748b; margin: 15px 0;"></p>
+            <button class="btn" style="background:var(--dark); color:white;" onclick="resetArena()">Next Round</button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDQ3uDQ2h61dDNeRowTpItGgrZridn3s40",
+            authDomain: "swiftduel.firebaseapp.com",
+            projectId: "swiftduel",
+            storageBucket: "swiftduel.firebasestorage.app",
+            messagingSenderId: "114652592444",
+            appId: "1:114652592444:web:19ce34c0a6af62c4de0639"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        let balance = parseFloat(localStorage.getItem('swiftBalance')) || 0;
+        let gameActive = false;
+        let lock = false; 
+        let jewels = 0;
+        let currentBet = 0;
+
+        function sync(v) {
+            balance = v;
+            document.getElementById('balUI').innerText = balance.toLocaleString(undefined, {minimumFractionDigits:2});
+            localStorage.setItem('swiftBalance', balance.toFixed(2));
+        }
+
+        auth.onAuthStateChanged(user => {
+            if (user) db.collection('users').doc(user.uid).onSnapshot(doc => {
+                if (doc.exists && !gameActive) sync(doc.data().balance || 0);
+            });
+        });
+
+        function buildGrid() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            for (let i = 0; i < 25; i++) {
+                const t = document.createElement('div');
+                t.className = 'tile'; t.innerHTML = '●';
+                t.onclick = () => tapTile(t);
+                grid.appendChild(t);
+            }
+        }
+
+        async function startMine() {
+            const stake = parseFloat(document.getElementById('stake').value);
+            if (stake < 50 || stake > balance) return;
+
+            gameActive = true; lock = false; jewels = 0; currentBet = stake;
+            sync(balance - stake);
+            db.collection('users').doc(auth.currentUser.uid).update({ balance: firebase.firestore.FieldValue.increment(-stake) });
+
+            document.getElementById('setupArea').style.display = 'none';
+            document.getElementById('cashoutBtn').style.display = 'block';
+            document.getElementById('cashoutBtn').innerText = `Cashout ₦${stake.toFixed(2)}`;
+            buildGrid();
+        }
+
+        function tapTile(t) {
+            if (!gameActive || t.classList.contains('gem') || lock) return;
+
+            const isTrap = currentBet >= (balance + currentBet) * 0.60;
+            let boom = false;
+            let luck = Math.random();
+
+            if (isTrap) {
+                // Cunny: Kill in 1-3 taps for high stakes
+                if (jewels >= 1 && luck < 0.85) boom = true; 
+            } else {
+                // Fair 3-Mine Ratio (3/25 = 12% chance, boosted to 40/60 for house)
+                if (luck < 0.45) boom = true; 
+            }
+
+            if (boom) {
+                t.classList.add('bomb'); t.innerHTML = '💣';
+                finish(false);
+            } else {
+                t.classList.add('gem'); t.innerHTML = '💎';
+                jewels++;
+                let multi = 1 + (jewels * 0.42);
+                document.getElementById('cashoutBtn').innerText = `Cashout ₦${(currentBet * multi).toFixed(2)}`;
+            }
+        }
+
+        async function cashout() {
+            if (!gameActive || jewels === 0 || lock) return;
+            lock = true; 
+            gameActive = false; 
+            document.getElementById('cashoutBtn').style.display = 'none';
+
+            let win = currentBet * (1 + (jewels * 0.42));
+            sync(balance + win);
+            await db.collection('users').doc(auth.currentUser.uid).update({ balance: firebase.firestore.FieldValue.increment(win) });
+            finish(true, win);
+        }
+
+        function finish(won, amt) {
+            gameActive = false;
+            // INSTANT POPUP (100ms)
+            setTimeout(() => {
+                const over = document.getElementById('resOverlay');
+                document.getElementById('resTitle').innerText = won ? "SECURED" : "EXPLODED";
+                document.getElementById('resTitle').style.color = won ? "var(--success)" : "var(--danger)";
+                document.getElementById('resSub').innerText = won ? `+₦${amt.toFixed(2)}` : "-₦" + currentBet.toFixed(2);
+                over.style.display = 'flex';
+            }, 100);
+        }
+
+        function resetArena() {
+            document.getElementById('resOverlay').style.display = 'none';
+            document.getElementById('setupArea').style.display = 'block';
+            document.getElementById('cashoutBtn').style.display = 'none';
+            buildGrid();
+        }
+
+        buildGrid();
+        sync(balance);
+    </script>
+</body>
+</html>

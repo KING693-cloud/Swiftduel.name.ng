@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SwiftDuel | Predator Prism Elite</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #4f46e5; --danger: #ef4444; --success: #22c55e;
+            --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --gold: #eab308;
+        }
+
+        * { 
+            box-sizing: border-box; -webkit-tap-highlight-color: transparent; 
+            outline: none; user-select: none;
+        }
+
+        body {
+            margin: 0; padding: 0; height: 100vh;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg); color: var(--text);
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        /* Notifications / Custom Alerts */
+        #toast {
+            position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
+            background: var(--text); color: white; padding: 15px 30px;
+            border-radius: 50px; font-weight: 800; font-size: 14px;
+            z-index: 5000; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); border: 2px solid var(--primary);
+        }
+        #toast.active { top: 20px; }
+
+        header { 
+            padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; 
+            background: var(--card); border-bottom: 1px solid #e2e8f0; z-index: 100;
+        }
+
+        .bal-pill { 
+            background: #1e293b; color: #fff; padding: 10px 20px; 
+            border-radius: 50px; font-weight: 900; font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .scroll-container {
+            flex: 1; overflow-y: auto; display: flex; flex-direction: column; 
+            align-items: center; padding: 20px; -webkit-overflow-scrolling: touch;
+        }
+
+        .status-box { text-align: center; margin-bottom: 25px; }
+        .status-box h1 { margin: 0; font-size: 24px; font-weight: 950; letter-spacing: -0.5px; }
+        #subtext { font-size: 10px; font-weight: 800; color: #64748b; letter-spacing: 2px; margin-top: 6px; text-transform: uppercase; }
+
+        .board {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 15px; width: 100%; max-width: 350px;
+            aspect-ratio: 1/1; margin-bottom: 30px;
+            touch-action: none;
+        }
+
+        .cell {
+            background: var(--card); border-radius: 24px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 50px; font-weight: 950;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.03), inset 0 -4px 0 #f1f5f9;
+            border: 2px solid #e2e8f0; transition: transform 0.1s;
+        }
+        .cell.taken { pointer-events: none; transform: scale(0.98); background: #f8fafc; }
+        .cell.x { color: var(--primary); }
+        .cell.o { color: var(--danger); }
+
+        .bet-card {
+            width: 100%; max-width: 350px; background: var(--card);
+            padding: 25px; border-radius: 35px; border: 1px solid #e2e8f0;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05); margin-bottom: 50px;
+        }
+
+        .input-group { position: relative; margin-bottom: 15px; }
+        .input-group span { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); font-weight: 900; color: var(--gold); font-size: 18px; }
+        .bet-input {
+            width: 100%; padding: 18px 18px 18px 40px; border-radius: 18px;
+            border: 2px solid #f1f5f9; background: #f8fafc; font-size: 20px; 
+            font-weight: 900; color: var(--text);
+        }
+
+        .action-btn {
+            width: 100%; padding: 20px; border-radius: 18px; border: none;
+            background: var(--text); color: white; font-weight: 900;
+            text-transform: uppercase; letter-spacing: 1px; cursor: pointer;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .overlay {
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9);
+            display: none; justify-content: center; align-items: center; z-index: 2000;
+            backdrop-filter: blur(8px);
+        }
+        .modal {
+            background: white; padding: 45px 30px; border-radius: 40px;
+            text-align: center; width: 88%; max-width: 320px;
+            transform: scale(0.9); transition: 0.3s;
+        }
+        .overlay.show .modal { transform: scale(1); }
+        
+        .modal h2 { font-size: 36px; margin: 0; font-weight: 950; }
+        .modal p { color: #64748b; font-weight: 700; margin: 15px 0 30px; font-size: 18px; }
+        .modal button {
+            width: 100%; padding: 18px; border: none; border-radius: 18px;
+            background: var(--primary); color: white; font-weight: 900; font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast">MINIMUM ₦50</div>
+
+    <header>
+        <a href="game.html" style="text-decoration:none; color:#94a3b8; font-size: 24px;">✕</a>
+        <div class="bal-pill">₦<span id="balDisplay">0.00</span></div>
+    </header>
+
+    <div class="scroll-container">
+        <div class="status-box">
+            <h1>PREDATOR ELITE</h1>
+            <div id="subtext">WAITING FOR STAKE</div>
+        </div>
+
+        <div id="board" class="board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+
+        <div class="bet-card">
+            <div class="input-group">
+                <span>₦</span>
+                <input type="number" id="stakeInput" class="bet-input" value="100">
+            </div>
+            <button id="stakeBtn" class="action-btn" onclick="initiateDuel()">CONFIRM & DUEL</button>
+        </div>
+    </div>
+
+    <div id="resOverlay" class="overlay">
+        <div class="modal">
+            <h2 id="resHeader">WON</h2>
+            <p id="resSub"></p>
+            <button onclick="closeResult()">NEXT ROUND</button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDQ3uDQ2h61dDNeRowTpItGgrZridn3s40",
+            authDomain: "swiftduel.firebaseapp.com",
+            projectId: "swiftduel",
+            storageBucket: "swiftduel.firebasestorage.app",
+            messagingSenderId: "114652592444",
+            appId: "1:114652592444:web:19ce34c0a6af62c4de0639"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        let userBalance = parseFloat(localStorage.getItem('swiftBalance')) || 0;
+        let isDuelActive = false;
+        let firstTurn = "ai"; 
+        let boardState = ["", "", "", "", "", "", "", "", ""];
+        const pSym = "X", aiSym = "O";
+
+        document.getElementById('balDisplay').innerText = userBalance.toLocaleString(undefined, {minimumFractionDigits: 2});
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.add('active');
+            setTimeout(() => t.classList.remove('active'), 2500);
+        }
+
+        async function initiateDuel() {
+            const stake = parseFloat(document.getElementById('stakeInput').value);
+            if(stake < 50) return showToast("MINIMUM ₦50 REQUIRED");
+            if(stake > userBalance) return showToast("INSUFFICIENT BALANCE");
+
+            isDuelActive = true;
+            updateBalanceRemote(-stake);
+            
+            document.getElementById('stakeBtn').style.opacity = "0.3";
+            document.getElementById('stakeBtn').disabled = true;
+
+            if(firstTurn === "ai") {
+                document.getElementById('subtext').innerText = "AI IS OPENING...";
+                setTimeout(() => {
+                    const aiMove = minimax(boardState, aiSym, stake >= (userBalance * 0.5)).idx;
+                    applyCellMove(aiMove, aiSym);
+                    document.getElementById('subtext').innerText = "YOUR TURN (X)";
+                }, 600);
+            } else {
+                document.getElementById('subtext').innerText = "YOUR TURN (X)";
+            }
+        }
+
+        document.querySelectorAll('.cell').forEach(c => {
+            c.addEventListener('click', () => {
+                const i = c.dataset.index;
+                if(!isDuelActive || boardState[i] !== "") return;
+
+                applyCellMove(i, pSym);
+                if(checkWin(boardState, pSym)) return concludeDuel("win");
+                if(boardState.every(s => s !== "")) return concludeDuel("draw");
+
+                isDuelActive = false; // Block user double tap
+                document.getElementById('subtext').innerText = "AI PREDICTING...";
+                
+                setTimeout(() => {
+                    const stake = parseFloat(document.getElementById('stakeInput').value);
+                    const aiMove = minimax(boardState, aiSym, stake >= (userBalance * 0.5)).idx;
+                    applyCellMove(aiMove, aiSym);
+                    
+                    if(checkWin(boardState, aiSym)) return concludeDuel("lose");
+                    if(boardState.every(s => s !== "")) return concludeDuel("draw");
+                    
+                    isDuelActive = true;
+                    document.getElementById('subtext').innerText = "YOUR TURN (X)";
+                }, 500);
+            });
+        });
+
+        function applyCellMove(i, s) {
+            boardState[i] = s;
+            const el = document.querySelector(`[data-index='${i}']`);
+            el.innerText = s;
+            el.classList.add(s.toLowerCase(), 'taken');
+        }
+
+        function minimax(board, player, isCunny) {
+            const avail = board.map((v, i) => v === "" ? i : null).filter(v => v !== null);
+            if (checkWin(board, pSym)) return { score: -10 };
+            if (checkWin(board, aiSym)) return { score: 10 };
+            if (avail.length === 0) return { score: 0 };
+
+            const moves = [];
+            for (let i = 0; i < avail.length; i++) {
+                let m = { idx: avail[i] };
+                board[avail[i]] = player;
+                m.score = minimax(board, player === aiSym ? pSym : aiSym, isCunny).score;
+                board[avail[i]] = "";
+                moves.push(m);
+            }
+
+            let best;
+            if(player === aiSym) {
+                let high = -1000;
+                for(let i=0; i<moves.length; i++) { if(moves[i].score > high) { high = moves[i].score; best = i; } }
+            } else {
+                let low = 1000;
+                for(let i=0; i<moves.length; i++) { if(moves[i].score < low) { low = moves[i].score; best = i; } }
+            }
+            return moves[best];
+        }
+
+        function checkWin(b, p) {
+            const winPaths = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+            return winPaths.some(path => path.every(i => b[i] === p));
+        }
+
+        async function updateBalanceRemote(amt) {
+            const user = auth.currentUser;
+            if(user) {
+                await db.collection('users').doc(user.uid).update({ balance: firebase.firestore.FieldValue.increment(amt) });
+                const snap = await db.collection('users').doc(user.uid).get();
+                userBalance = snap.data().balance;
+                document.getElementById('balDisplay').innerText = userBalance.toLocaleString(undefined, {minimumFractionDigits: 2});
+                localStorage.setItem('swiftBalance', userBalance);
+            }
+        }
+
+        function concludeDuel(res) {
+            isDuelActive = false;
+            const stake = parseFloat(document.getElementById('stakeInput').value);
+            const overlay = document.getElementById('resOverlay');
+            const h = document.getElementById('resHeader');
+            const s = document.getElementById('resSub');
+
+            if(res === "win") {
+                h.innerText = "VICTORY"; h.style.color = "var(--success)";
+                s.innerText = `+ ₦${(stake * 0.95).toFixed(2)}`;
+                updateBalanceRemote(stake * 1.95);
+                firstTurn = "ai"; // AI starts next after being beaten
+            } else if(res === "draw") {
+                h.innerText = "TIED"; h.style.color = "#64748b";
+                s.innerText = "Stake Refunded";
+                updateBalanceRemote(stake);
+                firstTurn = (firstTurn === "ai") ? "player" : "ai";
+            } else {
+                h.innerText = "BUSTED"; h.style.color = "var(--danger)";
+                s.innerText = `- ₦${stake.toFixed(2)}`;
+                firstTurn = "player"; // Human starts next to recover
+            }
+            overlay.style.display = "flex";
+            overlay.classList.add('show');
+        }
+
+        function closeResult() {
+            boardState = ["", "", "", "", "", "", "", "", ""];
+            document.querySelectorAll('.cell').forEach(c => { c.innerText = ""; c.className = 'cell'; });
+            document.getElementById('resOverlay').style.display = "none";
+            document.getElementById('resOverlay').classList.remove('show');
+            document.getElementById('stakeBtn').style.opacity = "1";
+            document.getElementById('stakeBtn').disabled = false;
+            document.getElementById('subtext').innerText = "STAKE READY";
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SwiftDuel | Secure Vault Elite</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --p1: #6366f1; --p2: #ec4899; --dark: #070b14;
+            --glass: rgba(255, 255, 255, 0.05); --success: #2ed573;
+            --surface: #111827; --err: #ef4444;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; user-select: none; }
+
+        body {
+            margin: 0; min-height: 100dvh; font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: radial-gradient(circle at top, #1e1b4b, #070b14);
+            color: white; display: flex; flex-direction: column; align-items: center;
+            padding-bottom: 60px; overflow-x: hidden;
+        }
+
+        header {
+            width: 100%; padding: 20px; display: flex; align-items: center;
+            background: rgba(7, 11, 20, 0.85); backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255,255,255,0.05); position: sticky; top: 0; z-index: 100;
+        }
+        
+        .back-link { 
+            color: white; text-decoration: none; font-size: 22px; 
+            margin-right: 15px; width: 44px; height: 44px; display: flex; 
+            align-items: center; justify-content: center; border-radius: 14px; 
+            background: var(--glass); border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .container { width: 92%; max-width: 420px; padding-top: 20px; animation: fadeIn 0.6s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .balance-hero {
+            background: linear-gradient(135deg, var(--p1), var(--p2));
+            padding: 45px 25px; border-radius: 35px; text-align: center;
+            margin-bottom: 25px; border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            position: relative; overflow: hidden;
+        }
+
+        .input-card {
+            background: var(--glass); padding: 35px 25px; border-radius: 32px;
+            border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(20px);
+            margin-bottom: 20px;
+        }
+
+        .amount-row {
+            display: flex; align-items: center; background: rgba(0,0,0,0.4);
+            padding: 20px; border-radius: 22px; margin: 15px 0; border: 2px solid rgba(255,255,255,0.05);
+        }
+        
+        input {
+            background: transparent; border: none; color: white;
+            font-size: 35px; font-weight: 900; width: 100%; letter-spacing: -1px;
+        }
+
+        /* NEW STYLE FOR LONGER PAGE */
+        .vault-info-section {
+            width: 100%; margin-top: 10px; padding: 20px;
+            background: rgba(255,255,255,0.02); border-radius: 25px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .info-row {
+            display: flex; align-items: center; gap: 15px; margin-bottom: 20px;
+        }
+
+        .icon-box {
+            min-width: 40px; height: 40px; border-radius: 12px;
+            background: rgba(99, 102, 241, 0.1); display: flex;
+            align-items: center; justify-content: center; color: var(--p1);
+            font-weight: bold; border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .btn-pay {
+            width: 100%; padding: 24px; border-radius: 22px;
+            border: none; background: white; color: var(--dark);
+            font-size: 17px; font-weight: 900; text-transform: uppercase;
+            cursor: pointer; transition: 0.2s;
+        }
+
+        .full-overlay {
+            position: fixed; inset: 0; background: rgba(7, 11, 20, 0.98);
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 2000; text-align: center;
+        }
+        
+        .success-box { 
+            background: white; color: var(--dark); padding: 50px 30px; 
+            border-radius: 45px; width: 88%; box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+        }
+
+        .loader {
+            width: 60px; height: 60px; border: 6px solid var(--glass);
+            border-top: 6px solid var(--p1); border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 25px;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        #errorToast {
+            position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%);
+            background: var(--err); color: white; padding: 15px 30px; border-radius: 50px;
+            font-weight: 800; font-size: 13px; z-index: 5000; transition: 0.5s;
+        }
+        #errorToast.show { bottom: 30px; }
+    </style>
+</head>
+<body id="mainBody">
+
+    <div id="errorToast">ERROR</div>
+
+    <header>
+        <a href="dashboard.html" class="back-link">←</a>
+        <span style="font-weight: 900; font-size: 13px; letter-spacing: 2px;">RECHARGE VAULT</span>
+    </header>
+
+    <div class="container">
+        <div class="balance-hero">
+            <p style="font-size: 11px; font-weight: 800; opacity: 0.8; margin: 0; letter-spacing: 1px;">TOTAL VAULT ASSETS</p>
+            <h1 style="font-size: 55px; margin: 10px 0; font-weight: 950;">₦<span id="balDisplay">0.00</span></h1>
+            <div style="font-size: 10px; font-weight: 800; background: rgba(0,0,0,0.2); padding: 8px 18px; border-radius: 20px; display: inline-block;">
+                <span style="color:var(--success)">●</span> INSTANT SYNC ACTIVE
+            </div>
+        </div>
+
+        <div class="input-card">
+            <p style="font-size: 11px; font-weight: 700; color: #94a3b8; margin-bottom: 10px;">DEPOSIT AMOUNT</p>
+            <div class="amount-row">
+                <span>₦</span>
+                <input type="number" id="amtInput" value="1000" inputmode="decimal">
+            </div>
+            <p style="font-size: 10px; opacity: 0.5; margin-bottom: 20px;">Minimum deposit amount is ₦500</p>
+            <button id="mainPayBtn" class="btn-pay" onclick="startFlow()">PROCEED TO SECURE PAY</button>
+        </div>
+
+        <div class="vault-info-section">
+            <h3 style="font-size: 14px; letter-spacing: 1px; color: var(--p1); margin-top: 0;">VAULT SECURITY PROTOCOLS</h3>
+            
+            <div class="info-row">
+                <div class="icon-box">01</div>
+                <div>
+                    <h4 style="margin: 0; font-size: 13px;">End-to-End Encryption</h4>
+                    <p style="margin: 5px 0 0; font-size: 11px; opacity: 0.6;">Every transaction is shielded by military-grade 256-bit SSL encryption for your safety.</p>
+                </div>
+            </div>
+
+            <div class="info-row">
+                <div class="icon-box">02</div>
+                <div>
+                    <h4 style="margin: 0; font-size: 13px;">Instant Asset Sync</h4>
+                    <p style="margin: 5px 0 0; font-size: 11px; opacity: 0.6;">Funds are credited to your Secure Vault immediately after payment confirmation.</p>
+                </div>
+            </div>
+
+            <div class="info-row" style="margin-bottom: 0;">
+                <div class="icon-box">03</div>
+                <div>
+                    <h4 style="margin: 0; font-size: 13px;">Verified Gateway</h4>
+                    <p style="margin: 5px 0 0; font-size: 11px; opacity: 0.6;">All payments are processed through Paystack's PCI-DSS compliant infrastructure.</p>
+                </div>
+            </div>
+        </div>
+
+        <p style="text-align: center; font-size: 10px; opacity: 0.3; margin-top: 30px;">
+            Transaction ID: <span id="sessionID">SYNC-RAND-772</span><br>
+            SwiftDuel Secure Systems © 2026
+        </p>
+    </div>
+
+    <div id="waitOverlay" class="full-overlay">
+        <div class="loader"></div>
+        <h2 style="font-size: 24px; font-weight: 900; margin: 0;">SYNCING VAULT</h2>
+    </div>
+
+    <div id="winOverlay" class="full-overlay" style="z-index: 3000;">
+        <div class="success-box">
+            <h2 style="font-size: 32px; font-weight: 950; margin: 0;">DEPOSIT SUCCESS!</h2>
+            <p style="color: #64748b; font-weight: 700; margin: 20px 0 40px 0; font-size: 16px;">
+                ₦<span id="lastAmt">0</span> added to your account.
+            </p>
+            <button class="btn-pay" style="background: var(--p1); color: white;" onclick="location.href='dashboard.html'">GO TO DASHBOARD</button>
+        </div>
+    </div>
+
+    <script src="https://js.paystack.co/v2/inline.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDQ3uDQ2h61dDNeRowTpItGgrZridn3s40",
+            authDomain: "swiftduel.firebaseapp.com",
+            projectId: "swiftduel",
+            storageBucket: "swiftduel.firebasestorage.app",
+            messagingSenderId: "114652592444",
+            appId: "1:114652592444:web:19ce34c0a6af62c4de0639"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        let currentUser = null;
+
+        function triggerError(msg) {
+            const t = document.getElementById('errorToast');
+            t.innerText = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                db.collection('users').doc(user.uid).onSnapshot(doc => {
+                    if (doc.exists) {
+                        const cloudBal = doc.data().balance || 0;
+                        document.getElementById('balDisplay').innerText = cloudBal.toLocaleString(undefined, {minimumFractionDigits: 2});
+                    }
+                });
+            } else { location.href = 'index.html'; }
+        });
+
+        async function startFlow() {
+            const amount = parseFloat(document.getElementById('amtInput').value);
+            // CHANGED TO 500 AS REQUESTED
+            if (!amount || amount < 500) return triggerError("MINIMUM DEPOSIT ₦500");
+
+            const paystack = new PaystackPop();
+            paystack.newTransaction({
+                key: 'pk_test_68aad72aa399d041f2e62f08ab88a61a5ee03c58', 
+                email: currentUser.email,
+                amount: Math.floor(amount * 100), 
+                onSuccess: (res) => {
+                    finalizeTransaction(res.reference, amount);
+                },
+                onCancel: () => { triggerError("PAYMENT CANCELLED"); }
+            });
+        }
+
+        async function finalizeTransaction(ref, amt) {
+            document.getElementById('waitOverlay').style.display = 'flex';
+            try {
+                const batch = db.batch();
+                const userRef = db.collection('users').doc(currentUser.uid);
+                const depositRef = db.collection('deposits').doc(ref);
+
+                batch.set(depositRef, {
+                    uid: currentUser.uid,
+                    amount: amt,
+                    ref: ref,
+                    status: "success",
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                batch.update(userRef, {
+                    balance: firebase.firestore.FieldValue.increment(amt)
+                });
+
+                await batch.commit();
+
+                document.getElementById('waitOverlay').style.display = 'none';
+                document.getElementById('winOverlay').style.display = 'flex';
+                document.getElementById('lastAmt').innerText = amt.toLocaleString();
+            } catch (err) {
+                document.getElementById('waitOverlay').style.display = 'none';
+                triggerError("SYNC FAILED: " + err.message);
+            }
+        }
+        
+        // Minor detail to fill space
+        document.getElementById('sessionID').innerText = 'SD-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+    </script>
+</body>
+</html>

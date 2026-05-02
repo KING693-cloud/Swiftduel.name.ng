@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SwiftDuel | Arena Dashboard</title>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --white: rgba(255, 255, 255, 0.98);
+            --p1: #6366f1; --p2: #ec4899; --p3: #8b5cf6;
+            --dark: #0f172a; --glass: rgba(255,255,255,0.05);
+            --success: #10b981;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        
+        body {
+            margin: 0; padding: 0; min-height: 100vh;
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: linear-gradient(-45deg, #1e1b4b, #312e81, #1e293b, #0f172a);
+            background-size: 400% 400%;
+            animation: flow 15s ease infinite;
+            padding-bottom: 140px; color: #fff;
+            overflow-x: hidden;
+        }
+        @keyframes flow { 0% {background-position: 0% 50%;} 50% {background-position: 100% 50%;} 100% {background-position: 0% 50%;} }
+        
+        header {
+            background: var(--white); padding: 20px 25px;
+            border-bottom-left-radius: 35px; border-bottom-right-radius: 35px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); position: sticky; top: 0; z-index: 100;
+        }
+        .user-meta span { font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+        .user-meta h2 { margin: 0; font-size: 18px; color: var(--dark); font-weight: 950; text-transform: uppercase; }
+        
+        .balance-pill {
+            background: var(--dark); color: #fff; padding: 10px 18px; border-radius: 50px;
+            font-weight: 900; font-size: 15px; border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .container { padding: 20px; max-width: 450px; margin: auto; }
+
+        .hero-card {
+            background: var(--white); border-radius: 35px; padding: 40px 25px; text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2); margin-top: 10px; margin-bottom: 25px;
+            position: relative; overflow: hidden;
+        }
+        .hero-card::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 5px; background: linear-gradient(to right, var(--p1), var(--p2)); }
+        .hero-card h1 { margin: 0; font-size: 32px; font-weight: 950; color: var(--dark); letter-spacing: -1.5px; }
+        .hero-card p { font-size: 13px; color: #64748b; font-weight: 700; margin: 12px 0 30px; text-transform: uppercase; }
+        
+        .play-btn {
+            display: block; width: 100%; padding: 22px; background: linear-gradient(135deg, var(--p1), var(--p3));
+            color: white; text-decoration: none; border-radius: 20px; font-weight: 950; font-size: 18px;
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4); text-transform: uppercase;
+            text-align: center;
+        }
+
+        /* NEW: Arena Stats Section (Adds Length) */
+        .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px; }
+        .stat-box { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); border-radius: 25px; padding: 20px; text-align: center; }
+        .stat-box small { display: block; font-size: 9px; font-weight: 800; opacity: 0.5; text-transform: uppercase; margin-bottom: 5px; }
+        .stat-box b { font-size: 18px; font-weight: 900; color: var(--p1); }
+
+        .section-label { color: rgba(255,255,255,0.5); font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 15px; display: block; padding-left: 5px; }
+
+        .action-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        .action-card {
+            background: var(--glass); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1);
+            padding: 20px; border-radius: 25px; color: white; text-decoration: none; display: flex; align-items: center; gap: 18px;
+        }
+        .action-card i { font-size: 24px; font-style: normal; width: 45px; height: 45px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; border-radius: 15px; }
+        .action-text b { display: block; font-size: 16px; font-weight: 800; }
+        .action-text span { font-size: 11px; opacity: 0.5; font-weight: 600; }
+
+        /* NEW: Live Winners Feed */
+        .live-feed { background: rgba(0,0,0,0.2); border-radius: 25px; padding: 20px; margin-top: 25px; }
+        .feed-item { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .feed-item span { font-weight: 800; color: var(--success); }
+
+        .nav {
+            position: fixed; bottom: 0; width: 100%; background: #fff; padding: 18px 0;
+            display: flex; justify-content: space-around; box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+            border-top-left-radius: 35px; border-top-right-radius: 35px; z-index: 1000;
+        }
+        .nav-link { text-decoration: none; text-align: center; color: #cbd5e1; font-size: 11px; font-weight: 800; }
+        .nav-link.active { color: var(--p1); }
+        .nav-link i { display: block; font-size: 22px; margin-bottom: 4px; font-style: normal; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="user-meta">
+            <span>Arena Profile</span>
+            <h2 id="uDisplay">...</h2>
+        </div>
+        <div id="mainBalance" class="balance-pill">₦0.00</div>
+    </header>
+
+    <div class="container">
+        <div class="hero-card">
+            <h1>READY TO DUEL?</h1>
+            <p>Stake ₦500 — Win ₦1000</p>
+            <a href="game.html" class="play-btn">🎮 START MATCH</a>
+        </div>
+
+        <span class="section-label">Wallet Operations</span>
+        <div class="action-grid">
+            <a href="recharge.html" class="action-card">
+                <i>💳</i>
+                <div class="action-text"><b>Deposit Funds</b><span>Instant bank top-up</span></div>
+            </a>
+            <a href="withdraw.html" class="action-card">
+                <i>💰</i>
+                <div class="action-text"><b>Withdraw Payout</b><span>To your local bank</span></div>
+            </a>
+            <a href="refer.html" class="action-card">
+                <i>👥</i>
+                <div class="action-text"><b>Referrals</b><span>Earn ₦50 for every friend</span></div>
+            </a>
+        </div></div>
+    </div>
+
+    <nav class="nav">
+        <a href="dashboard.html" class="nav-link active"><i>🕹️</i><span>Lobby</span></a>
+        <a href="refer.html" class="nav-link"><i>👥</i><span>Refer</span></a>
+        <a href="recharge.html" class="nav-link"><i>💳</i><span>Deposit</span></a>
+        <a href="withdraw.html" class="nav-link"><i>💰</i><span>Payout</span></a>
+    </nav>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDQ3uDQ2h61dDNeRowTpItGgrZridn3s40",
+            authDomain: "swiftduel.firebaseapp.com",
+            projectId: "swiftduel",
+            storageBucket: "swiftduel.firebasestorage.app",
+            messagingSenderId: "114652592444",
+            appId: "1:114652592444:web:19ce34c0a6af62c4de0639"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        const balEl = document.getElementById('mainBalance');
+        const nameEl = document.getElementById('uDisplay');
+
+        // INSTANT LOAD FROM MEMORY
+        const memName = localStorage.getItem('last_name');
+        const memBal = localStorage.getItem('last_bal') || "0.00";
+        
+        if (memName && memName !== "PLAYER") {
+            nameEl.innerText = memName.toUpperCase();
+        } else {
+            nameEl.innerText = "WARRIOR";
+        }
+        balEl.innerText = "₦" + parseFloat(memBal).toLocaleString(undefined, {minimumFractionDigits: 2});
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // LIVE SYNC
+                db.collection('users').doc(user.uid).onSnapshot(doc => {
+                    if (doc.exists) {
+                        const data = doc.data();
+                        // Support both fields to prevent "Player" bug
+                        const newName = data.username || data.name || "WARRIOR";
+                        const newBal = data.balance || 0;
+
+                        nameEl.innerText = newName.toUpperCase();
+                        balEl.innerText = "₦" + parseFloat(newBal).toLocaleString(undefined, {minimumFractionDigits: 2});
+
+                        localStorage.setItem('last_name', newName);
+                        localStorage.setItem('last_bal', newBal);
+                    }
+                });
+            } else {
+                localStorage.clear();
+                window.location.href = "index.html";
+            }
+        });
+    </script>
+</body>
+</html>
