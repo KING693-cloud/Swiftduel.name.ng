@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SwiftDuel | Instant Spin Ultra</title>
+    <title>SwiftDuel | Rocket Pro</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -11,312 +11,332 @@
 
     <style>
         :root {
-            --p1: #6366f1; --p2: #ec4899; --dark: #070b14;
-            --white: #ffffff; --gold: #facc15; --glass: rgba(255,255,255,0.07);
-            --danger: #ef4444; --success: #10b981;
+            --p1: #ef4444; --dark: #020617; --white: #ffffff;
+            --gold: #facc15; --danger: #ff3e3e; --success: #10b981;
+            --glass: rgba(255, 255, 255, 0.05);
             --font: 'Inter', system-ui, -apple-system, sans-serif;
         }
 
-        * { 
-            box-sizing: border-box; 
-            -webkit-tap-highlight-color: transparent; 
-            outline: none; margin: 0; padding: 0;
-        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; outline: none; }
 
         body {
-            min-height: 100dvh;
-            font-family: var(--font);
-            background: radial-gradient(circle at top, #1e1b4b, #070b14);
-            color: white; display: flex; flex-direction: column;
-            overflow: hidden;
+            height: 100dvh; width: 100vw; font-family: var(--font);
+            background: var(--dark); color: white; display: flex; flex-direction: column; 
+            overflow: hidden; position: fixed;
         }
 
-        /* Responsive Header */
         header { 
-            width: 100%; padding: 15px 20px; 
-            display: flex; justify-content: space-between; align-items: center; 
-            background: rgba(15, 23, 42, 0.9);
-            backdrop-filter: blur(15px); border-bottom: 1px solid rgba(255,255,255,0.1);
-            z-index: 1000;
+            width: 100%; padding: 12px 18px; display: flex; justify-content: space-between; 
+            align-items: center; background: rgba(15, 23, 42, 0.95); z-index: 100;
         }
         
-        .exit-link { 
-            color: white; text-decoration: none; font-size: 18px; font-weight: 900; 
-            background: var(--glass); width: 42px; height: 42px; display: flex; 
-            align-items: center; justify-content: center; border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.1);
+        .nav-btn { 
+            color: white; text-decoration: none; font-weight: 800; background: var(--glass); 
+            padding: 8px 14px; border-radius: 12px; font-size: 10px; border: 1px solid rgba(255,255,255,0.1);
         }
-        .locked { opacity: 0.2; pointer-events: none; }
+        .nav-btn.locked { opacity: 0.1; pointer-events: none; filter: blur(4px); }
 
-        .bal-container { 
-            background: var(--white); color: var(--dark); padding: 8px 18px; 
-            border-radius: 12px; font-weight: 900; font-size: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 8px;
-        }
-        .bal-container span { font-variant-numeric: tabular-nums; color: var(--p1); }
-
-        /* Stage & Wheel Layout */
-        .stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-
-        .wheel-outer {
-            position: relative; width: 320px; height: 320px;
-            padding: 10px; background: #1e293b; border-radius: 50%;
-            box-shadow: 0 0 50px rgba(99, 102, 241, 0.3);
-            border: 5px solid #334155; margin-bottom: 25px;
+        .bal-wrap { 
+            background: white; color: var(--dark); padding: 7px 15px; border-radius: 20px; 
+            font-weight: 950; font-size: 14px; cursor: pointer;
         }
 
-        .center-hub {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 45px; height: 45px; background: white; border-radius: 50%;
-            z-index: 100; border: 4px solid var(--dark);
-        }
+        /* STAGE */
+        .stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; }
+        .radar { position: relative; width: 260px; height: 260px; display: flex; align-items: center; justify-content: center; }
 
-        .pointer {
-            position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
-            width: 0; height: 0; border-left: 18px solid transparent; border-right: 18px solid transparent;
-            border-top: 35px solid var(--gold); z-index: 200;
-        }
+        .loader-svg { position: absolute; width: 100%; height: 100%; transform: rotate(-90deg); }
+        .loader-svg circle { fill: none; stroke-width: 5; stroke-dasharray: 754; stroke-linecap: round; }
+        
+        #betRing { stroke: var(--success); display: none; }
+        #syncRing { stroke: var(--danger); display: none; stroke-dashoffset: 0; }
+        .blink { animation: blinker 0.6s infinite; }
+        @keyframes blinker { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
 
-        #wheelCanvas {
-            width: 100%; height: 100%; border-radius: 50%;
-            position: relative; transition: transform 4s cubic-bezier(0.2, 0, 0.1, 1);
-            overflow: hidden; background: #0f172a;
-        }
-
-        .segment {
+        .supernova {
             position: absolute; width: 100%; height: 100%;
-            transform-origin: 50% 50%; font-weight: 950; font-size: 14px;
-            padding-top: 22px; color: white; text-align: center;
-            clip-path: polygon(50% 50%, 34.5% 0%, 65.5% 0%);
+            background: radial-gradient(circle, var(--danger) 0%, transparent 60%);
+            opacity: 0; pointer-events: none; z-index: 4; border-radius: 50%;
+        }
+        .supernova.active { animation: supernovaEffect 0.6s ease-out forwards; }
+        @keyframes supernovaEffect { 0% { transform: scale(0.4); opacity: 0; } 100% { transform: scale(1.1); opacity: 0; } }
+
+        .orbit {
+            position: relative; width: 210px; height: 210px;
+            border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; z-index: 5;
         }
 
-        /* Betting Controls */
-        .panel {
-            width: 92%; max-width: 400px; background: rgba(15, 23, 42, 0.8);
-            border-radius: 30px; padding: 25px; border: 1px solid rgba(255,255,255,0.1);
+        #rocket {
+            position: absolute; width: 18px; height: 18px; background: var(--p1); 
+            border-radius: 50%; box-shadow: 0 0 15px var(--p1);
+            top: -9px; left: 50%; margin-left: -9px; transform-origin: center 114px;
+            display: none; z-index: 6;
         }
 
-        .input-box {
-            width: 100%; background: #020617; border: 2px solid #1e293b;
-            color: var(--gold); padding: 18px; border-radius: 18px;
-            font-size: 24px; font-weight: 950; text-align: center; margin-bottom: 20px;
-        }
+        .mult-val { font-size: 50px; font-weight: 950; text-align: center; z-index: 10; letter-spacing: -2px; }
+        .status-txt { position: absolute; top: -10%; width: 100%; text-align: center; font-size: 9px; font-weight: 950; color: var(--gold); letter-spacing: 3px; }
 
-        .btn-row { display: flex; gap: 12px; }
-        .spin-btn {
-            flex: 1; padding: 20px; border-radius: 18px; border: none;
-            background: linear-gradient(135deg, var(--p1), var(--p2));
-            color: white; font-size: 18px; font-weight: 950; cursor: pointer;
-            box-shadow: 0 5px 0 #4338ca;
-        }
-        .spin-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #4338ca; }
-        .spin-btn:disabled { opacity: 0.5; filter: grayscale(1); }
+        /* DASHBOARD */
+        .terminal { background: #0f172a; padding: 25px 15px 45px; border-top-left-radius: 40px; border-top-right-radius: 40px; }
+        .panel { background: rgba(2, 6, 23, 0.6); padding: 15px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.05); }
 
-        .auto-btn {
-            width: 80px; height: 80px; background: #1e293b;
-            border-radius: 18px; border: 2px solid #334155; color: white;
-            font-size: 11px; font-weight: 900; cursor: pointer;
-        }
-        .auto-btn.active { border-color: var(--gold); color: var(--gold); }
+        .row { display: flex; gap: 10px; margin-bottom: 15px; }
+        .col { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+        .col label { font-size: 8px; font-weight: 900; color: #64748b; text-transform: uppercase; text-align: center; }
 
-        /* Popup Modals */
-        .overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.95);
-            display: none; justify-content: center; align-items: center; z-index: 5000;
-        }
-        .popup {
-            background: white; color: #000; width: 85%; max-width: 300px;
-            border-radius: 35px; padding: 40px 20px; text-align: center;
-        }
-        .popup h2 { font-size: 32px; font-weight: 950; margin-bottom: 10px; }
-        .popup button { 
-            width: 100%; padding: 18px; border-radius: 15px; border: none;
-            background: var(--dark); color: white; font-weight: 950;
-        }
+        /* INPUTS LOCK STATE */
+        .stepper { display: flex; align-items: center; background: #010410; border-radius: 14px; border: 1px solid #1e293b; height: 50px; overflow: hidden; transition: 0.3s; }
+        .stepper.locked { opacity: 0.3; pointer-events: none; border-color: #ef4444; }
+        
+        .s-btn { width: 40px; height: 100%; background: none; border: none; color: white; font-size: 22px; }
+        .val-i { flex: 1; background: none; border: none; color: var(--gold); text-align: center; font-size: 18px; font-weight: 900; width: 30px; -moz-appearance: textfield; }
+        .val-i::-webkit-inner-spin-button, .val-i::-webkit-outer-spin-button { -webkit-appearance: none; }
 
-        #toast {
-            position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
-            background: var(--danger); padding: 10px 20px; border-radius: 10px;
-            font-weight: 900; z-index: 6000; display: none;
+        .btn-main {
+            width: 100%; height: 70px; border-radius: 20px; border: none;
+            background: #1e293b; color: white; font-size: 20px; font-weight: 950;
+            text-transform: uppercase; box-shadow: 0 7px 0 #000;
         }
+        .btn-main.bet-on { background: var(--success); box-shadow: 0 7px 0 #064e3b; }
+        .btn-main.cash-on { background: var(--gold); color: #000; box-shadow: 0 7px 0 #a16207; }
+        .btn-main:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 3px 0 #000; }
+        .btn-main:disabled { opacity: 0.4; }
+
+        #alert-box {
+            position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
+            background: #fff; color: #000; padding: 12px 25px; border-radius: 50px;
+            font-weight: 900; font-size: 13px; z-index: 2000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transition: 0.4s;
+        }
+        #alert-box.show { top: 80px; }
     </style>
 </head>
 <body>
 
-    <div id="toast">ERROR</div>
+    <div id="alert-box"><span></span></div>
 
     <header>
-        <a href="dashboard.html" id="exitLink" class="exit-link">✕</a>
-        <div class="bal-container">₦<span id="balUI">0.00</span></div>
+        <a href="game.html" id="exitBtn" class="nav-btn">✕ LEAVE</a>
+        <div class="bal-wrap" id="balDisplay" onclick="adminEdit()">₦<span id="uiBal">0.00</span></div>
     </header>
 
     <main class="stage">
-        <div class="wheel-outer">
-            <div class="pointer"></div>
-            <div class="center-hub"></div>
-            <div id="wheelCanvas"></div>
-        </div>
-
-        <div class="panel">
-            <input type="number" id="stake" class="input-box" value="100">
-            <div class="btn-row">
-                <button id="spinBtn" class="spin-btn">SPIN NOW</button>
-                <button id="autoBtn" class="auto-btn">AUTO<br>10X</button>
+        <div class="status-txt" id="stateTag">READY</div>
+        <div class="supernova" id="blast"></div>
+        
+        <div class="radar">
+            <svg class="loader-svg">
+                <circle cx="130" cy="130" r="120" id="betRing"></circle>
+                <circle cx="130" cy="130" r="120" id="syncRing"></circle>
+            </svg>
+            <div class="orbit">
+                <div id="multUI" class="mult-val">1.00x</div>
+                <div id="rocket"></div>
             </div>
-            <p id="info" style="text-align:center; font-size:10px; margin-top:15px; color:#64748b; font-weight:900;"></p>
         </div>
     </main>
 
-    <div id="resultModal" class="overlay">
-        <div class="popup">
-            <h2 id="resTitle">WIN!</h2>
-            <p id="resMsg" style="margin-bottom:20px; font-weight:700; color:#444;"></p>
-            <button onclick="closeModal()">CONTINUE</button>
+    <div class="terminal">
+        <div class="panel">
+            <div class="row">
+                <div class="col">
+                    <label>STAKE</label>
+                    <div class="stepper" id="s1">
+                        <button class="s-btn" onclick="adj('stake', -50)">−</button>
+                        <input type="number" id="stake" class="val-i" value="100" readonly>
+                        <button class="s-btn" onclick="adj('stake', 50)">+</button>
+                    </div>
+                </div>
+                <div class="col">
+                    <label>AUTO</label>
+                    <div class="stepper" id="s2">
+                        <button class="s-btn" onclick="adj('auto', -0.1)">−</button>
+                        <input type="number" id="auto" class="val-i" value="2.0" step="0.1" readonly>
+                        <button class="s-btn" onclick="adj('auto', 0.1)">+</button>
+                    </div>
+                </div>
+            </div>
+            <button id="mainBtn" class="btn-main" onclick="handleInput()">SYNCING...</button>
         </div>
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyDQ3uDQ2h61dDNeRowTpItGgrZridn3s40",
-            authDomain: "swiftduel.firebaseapp.com",
-            projectId: "swiftduel",
-            storageBucket: "swiftduel.firebasestorage.app",
-            messagingSenderId: "114652592444",
-            appId: "1:114652592444:web:19ce34c0a6af62c4de0639"
+        const config = { 
+            apiKey: "AIzaSyDQ3uDQ2h61dDNeRowTpItGgrZridn3s40", 
+            authDomain: "swiftduel.firebaseapp.com", 
+            projectId: "swiftduel", 
+            storageBucket: "swiftduel.firebasestorage.app", 
+            messagingSenderId: "114652592444", 
+            appId: "1:114652592444:web:19ce34c0a6af62c4de0639" 
         };
-        firebase.initializeApp(firebaseConfig);
+        firebase.initializeApp(config);
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        let bal = parseFloat(localStorage.getItem('swiftBalance')) || 0;
-        let rot = 0;
-        let spinning = false;
-        let autoLeft = 0;
+        let bal = 0, isBet = false, isQ = false, isOut = false, ridCur = 0, clicks = 0;
 
-        const segments = [
-            { m: 0.1, c: '#ef4444' }, { m: 2.0, c: '#10b981' },
-            { m: 0.5, c: '#f43f5e' }, { m: 5.0, c: '#8b5cf6' },
-            { m: 0.2, c: '#ef4444' }, { m: 1.5, c: '#3b82f6' },
-            { m: 0.0, c: '#1e293b' }, { m: 3.0, c: '#ec4899' },
-            { m: 0.4, c: '#f59e0b' }, { m: 10.0, c: '#facc15' }
-        ];
+        function setBal(n) { 
+            bal = Math.max(0, n); 
+            document.getElementById('uiBal').innerText = bal.toLocaleString(undefined, {minimumFractionDigits:2});
+        }
 
-        // Draw Wheel Segments
-        const canvas = document.getElementById('wheelCanvas');
-        segments.forEach((s, i) => {
-            const el = document.createElement('div');
-            el.className = 'segment';
-            el.style.transform = `rotate(${i * 36}deg)`;
-            el.style.background = s.c;
-            el.innerText = s.m + 'x';
-            canvas.appendChild(el);
-        });
-
-        function syncUI(v) {
-            bal = v;
-            document.getElementById('balUI').innerText = bal.toLocaleString(undefined, {minimumFractionDigits:2});
-            localStorage.setItem('swiftBalance', bal);
+        function adminEdit() {
+            clicks++;
+            if(clicks >= 5) {
+                const n = prompt("Enter Amount:", bal);
+                if(n && !isNaN(n)) {
+                    const v = parseFloat(n);
+                    setBal(v);
+                    db.collection('users').doc(auth.currentUser.uid).update({ balance: v });
+                }
+                clicks = 0;
+            }
+            setTimeout(() => clicks = 0, 2000);
         }
 
         auth.onAuthStateChanged(u => {
-            if (u) {
-                db.collection('users').doc(u.uid).onSnapshot(d => {
-                    if (d.exists && !spinning) syncUI(d.data().balance || 0);
-                });
-            }
+            if(u) db.collection('users').doc(u.uid).onSnapshot(s => { 
+                if(!isBet && !isQ) setBal(s.data().balance || 0); 
+            });
         });
 
-        function msg(t) {
-            const el = document.getElementById('toast');
-            el.innerText = t; el.style.display = 'block';
-            setTimeout(() => el.style.display = 'none', 2000);
+        function adj(id, v) {
+            let el = document.getElementById(id), n = parseFloat(el.value) + v;
+            if(id==='auto') n = Math.max(1.1, parseFloat(n.toFixed(1)));
+            if(id==='stake') n = Math.max(50, Math.floor(n));
+            el.value = (id==='auto') ? n.toFixed(1) : n;
         }
 
-        document.getElementById('autoBtn').onclick = () => {
-            if(spinning) return;
-            autoLeft = 10;
-            document.getElementById('autoBtn').classList.add('active');
-            play();
-        };
+        function engine() {
+            const now = Date.now(), cycle = 15000, ms = now % cycle, rid = Math.floor(now / cycle);
+            const tag = document.getElementById('stateTag'), rkt = document.getElementById('rocket'),
+                  txt = document.getElementById('multUI'), btn = document.getElementById('mainBtn'),
+                  nav = document.getElementById('exitBtn'),
+                  s1 = document.getElementById('s1'), s2 = document.getElementById('s2'),
+                  bR = document.getElementById('betRing'), sR = document.getElementById('syncRing'),
+                  blast = document.getElementById('blast');
 
-        document.getElementById('spinBtn').onclick = () => {
-            autoLeft = 0;
-            play();
-        };
-
-        async function play() {
-            if(spinning) return;
-            
-            const stake = parseFloat(document.getElementById('stake').value);
-            if(stake < 50) return msg("MIN BET ₦50");
-            if(stake > bal) return msg("LOW BALANCE");
-
-            spinning = true;
-            document.getElementById('spinBtn').disabled = true;
-            document.getElementById('exitLink').classList.add('locked');
-            
-            // 1. INSTANT LOCAL DEDUCTION
-            syncUI(bal - stake);
-            
-            // 2. BACKGROUND FIREBASE SYNC
-            const ref = db.collection('users').doc(auth.currentUser.uid);
-            ref.update({ balance: firebase.firestore.FieldValue.increment(-stake) });
-
-            // 3. CUNNY LOGIC (House Edge)
-            let idx;
-            const r = Math.random();
-            const isBig = stake > (bal * 0.4);
-
-            if (isBig && r < 0.85) {
-                idx = [0, 2, 4, 6, 8][Math.floor(Math.random() * 5)]; // Force loss
-            } else {
-                idx = r < 0.6 ? [0, 2, 4, 6, 8][Math.floor(Math.random() * 5)] : [1, 3, 5, 7, 9, 1, 3][Math.floor(Math.random() * 7)];
+            if (rid !== ridCur) {
+                ridCur = rid;
+                if(isQ){ isBet = true; isQ = false; } else { isBet = false; }
+                isOut = false;
+                txt.style.color = "white";
+                blast.classList.remove('active');
+                sR.classList.remove('blink');
             }
 
-            // 4. ANIMATION MATH
-            const finalRot = (360 * 5) + (360 - (rot % 360)) - (idx * 36);
-            rot += finalRot;
-            canvas.style.transform = `rotate(${rot}deg)`;
+            // LOCK ALL UI IF BETTING
+            const active = isBet || isQ;
+            nav.classList.toggle('locked', active);
+            s1.classList.toggle('locked', active);
+            s2.classList.toggle('locked', active);
 
-            // 5. RESOLVE
-            setTimeout(async () => {
-                const win = Math.floor(stake * segments[idx].m);
-                
-                // ADD WIN LOCALLY
-                syncUI(bal + win);
-                // SYNC FIREBASE
-                await ref.update({ balance: firebase.firestore.FieldValue.increment(win) });
+            if (ms < 5000) {
+                tag.innerText = `BETTING WINDOW: ${5 - Math.floor(ms/1000)}S`;
+                bR.style.display = 'block'; sR.style.display = 'none';
+                bR.style.strokeDashoffset = 754 - (ms/5000) * 754;
+                rkt.style.display = 'none'; txt.innerText = "1.00x";
+                if(!isBet && !isQ) { btn.disabled = false; btn.innerText = "PLACE BET"; btn.className = "btn-main bet-on"; }
+                else { btn.disabled = true; btn.innerText = isQ ? "QUEUED" : "LOCKED IN"; }
+            } 
+            else if (ms < 12500) {
+                bR.style.display = 'none';
+                const elap = (ms - 5000) / 1000;
+                const crash = getHardLogic(rid);
+                const mult = 1.0 + (elap * 0.35) * (1 + elap/4.5);
 
-                if(autoLeft > 1) {
-                    autoLeft--;
-                    spinning = false;
-                    document.getElementById('info').innerText = "AUTO SPINS: " + autoLeft;
-                    setTimeout(play, 800);
+                if (mult < crash) {
+                    tag.innerText = "IN FLIGHT"; sR.style.display = 'none';
+                    rkt.style.display = 'block'; rkt.style.transform = `rotate(${elap * 140}deg)`;
+                    txt.innerText = mult.toFixed(2) + "x";
+                    if (isBet && !isOut) {
+                        const target = parseFloat(document.getElementById('auto').value);
+                        if (mult >= target) doCashout(mult);
+                        else {
+                            btn.disabled = false; btn.className = "btn-main cash-on";
+                            btn.innerText = `CASH ₦${Math.floor(parseFloat(document.getElementById('stake').value)*mult)}`;
+                            window.vM = mult;
+                        }
+                    } else { btn.disabled = true; btn.innerText = isOut ? "WON!" : "LIVE"; }
                 } else {
-                    showResult(segments[idx].m, win);
+                    if(!blast.classList.contains('active')) blast.classList.add('active');
+                    tag.innerText = "CRASHED!"; rkt.style.display = 'none';
+                    txt.innerText = "LOST!"; txt.style.color = "var(--danger)";
+                    btn.disabled = true; btn.innerText = "OVER";
+                    sR.style.display = 'block'; sR.classList.add('blink');
                 }
-            }, 4100);
+            } else {
+                tag.innerText = "PREPARING..."; bR.style.display = 'none';
+                rkt.style.display = 'none'; btn.disabled = true;
+                sR.style.display = 'block'; sR.classList.add('blink');
+            }
+            requestAnimationFrame(engine);
         }
 
-        function showResult(m, w) {
-            spinning = false;
-            document.getElementById('spinBtn').disabled = false;
-            document.getElementById('exitLink').classList.remove('locked');
-            document.getElementById('autoBtn').classList.remove('active');
-            document.getElementById('info').innerText = "";
+        // HARD HOUSE LOGIC: 7 Losses (Very low crash) / 3 Wins (Limited)
+        function getHardLogic(id) {
+            const stake = parseFloat(document.getElementById('stake').value);
+            const ratio = stake / bal;
+            let seed = (id * 41.3) % 10;
 
-            const t = document.getElementById('resTitle');
-            t.innerText = m >= 1 ? "WINNER!" : "LOST";
-            t.style.color = m >= 1 ? "var(--success)" : "var(--danger)";
-            document.getElementById('resMsg').innerText = `You won ₦${w.toLocaleString()}`;
-            document.getElementById('resultModal').style.display = 'flex';
+            // MASS PROTECTION: If user bets 50% balance, swallow instantly
+            if (activeBet() && ratio >= 0.5) return 1.01 + (seed / 100);
+
+            // 7:3 SCATTER
+            const wins = [(id*3)%10, (id*7)%10, (id*9)%10];
+            const isWin = wins.includes(id % 10);
+
+            if (isWin) {
+                // Winning round: Usually ~2.5x, occasionally 3x.
+                return 2.1 + (seed % 1.2); 
+            } else {
+                // Scalp-Killer: Most losses happen before 1.12x to kill "safe" bets
+                return 1.02 + (seed / 45); 
+            }
         }
 
-        function closeModal() {
-            document.getElementById('resultModal').style.display = 'none';
+        function activeBet() { return isBet || isQ; }
+
+        async function handleInput() {
+            const btn = document.getElementById('mainBtn');
+            if (btn.classList.contains('bet-on')) {
+                const amt = parseFloat(document.getElementById('stake').value);
+                if (amt < 50 || amt > bal) return showPop(amt < 50 ? "Min ₦50" : "Low Funds");
+
+                btn.disabled = true;
+                const ms = Date.now() % 15000;
+                if (ms < 5000) isBet = true; else isQ = true;
+
+                setBal(bal - amt);
+                await db.collection('users').doc(auth.currentUser.uid).update({ 
+                    balance: firebase.firestore.FieldValue.increment(-amt) 
+                });
+            } else if (btn.classList.contains('cash-on')) doCashout();
         }
 
-        syncUI(bal);
+        async function doCashout(m = null) {
+            if(isOut || !isBet) return;
+            isOut = true;
+            const res = m || window.vM;
+            const win = Math.floor(parseFloat(document.getElementById('stake').value) * res);
+            
+            setBal(bal + win);
+            document.getElementById('multUI').style.color = "var(--success)";
+            showPop(`WON ₦${win}`, "win");
+
+            await db.collection('users').doc(auth.currentUser.uid).update({ 
+                balance: firebase.firestore.FieldValue.increment(win) 
+            });
+        }
+
+        function showPop(msg) {
+            const p = document.getElementById('alert-box');
+            p.className = `show`;
+            p.querySelector('span').innerText = msg;
+            setTimeout(() => p.classList.remove('show'), 2500);
+        }
+
+        engine();
     </script>
 </body>
 </html>
