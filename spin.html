@@ -17,7 +17,7 @@
             --font: 'Inter', system-ui, -apple-system, sans-serif;
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; margin: 0; padding: 0; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; outline: none; }
 
         body {
             height: 100dvh; width: 100vw; font-family: var(--font);
@@ -27,172 +27,205 @@
         }
 
         header { 
-            width: 100%; padding: 10px 20px; display: flex; justify-content: space-between; 
-            align-items: center; background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(15px); border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 1000;
+            width: 100%; padding: 10px 15px; display: flex; justify-content: space-between; 
+            align-items: center; background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 1000;
         }
         
         .exit-link { 
-            color: white; text-decoration: none; font-size: 18px; font-weight: 900; 
+            color: white; text-decoration: none; font-weight: 900; 
             background: var(--glass); width: 38px; height: 38px; display: flex; 
             align-items: center; justify-content: center; border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
         }
-        .locked { opacity: 0.1; pointer-events: none; }
+        .locked { opacity: 0.1 !important; pointer-events: none !important; filter: blur(8px); }
 
-        .bal-container { 
-            background: var(--white); color: var(--dark); padding: 6px 14px; 
-            border-radius: 10px; font-weight: 900; font-size: 13px;
-            display: flex; align-items: center; gap: 4px;
+        .bal-wrap { 
+            background: white; color: var(--dark); padding: 6px 14px; 
+            border-radius: 20px; font-weight: 950; font-size: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        .bal-container span { color: var(--p1); }
 
-        /* FIXED STAGE: Fits all screens */
-        .stage { 
-            flex: 1; display: flex; flex-direction: column; align-items: center; 
-            justify-content: space-evenly; padding: 10px 0;
-        }
+        /* WHEEL SECTION */
+        .stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 20px; }
 
         .wheel-outer {
             position: relative; width: 280px; height: 280px;
-            padding: 6px; background: #1e293b; border-radius: 50%;
-            box-shadow: 0 0 50px rgba(99, 102, 241, 0.3), inset 0 0 15px rgba(0,0,0,0.5);
-            border: 5px solid #334155;
+            padding: 8px; background: #1e293b; border-radius: 50%;
+            box-shadow: 0 0 60px rgba(99, 102, 241, 0.2);
+            border: 6px solid #334155;
+            margin-bottom: 20px;
         }
 
         .center-hub {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 40px; height: 40px; background: white; border-radius: 50%;
-            z-index: 100; border: 4px solid var(--dark);
+            z-index: 100; border: 5px solid var(--dark); display: flex; align-items: center; justify-content: center;
         }
 
-        .pointer {
-            position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
-            width: 0; height: 0; border-left: 18px solid transparent; border-right: 18px solid transparent;
-            border-top: 35px solid var(--gold); z-index: 200;
+        .sync-pulse {
+            width: 12px; height: 12px; background: var(--p1); border-radius: 50%;
+            animation: pulse 1.2s infinite; display: none;
+        }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
+
+        .pointer-needle {
+            position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent;
+            border-top: 30px solid var(--gold); z-index: 200;
         }
 
-        #wheelCanvas {
+        #wheel {
             width: 100%; height: 100%; border-radius: 50%;
-            position: relative; transition: transform 4.5s cubic-bezier(0.1, 0, 0.1, 1);
+            position: relative; 
+            /* TURBO SPEED: Reduced from 5s to 2s */
+            transition: transform 2s cubic-bezier(0.15, 0, 0.1, 1);
             overflow: hidden; background: #0f172a;
         }
 
         .segment {
             position: absolute; width: 100%; height: 100%;
-            transform-origin: 50% 50%; font-weight: 950; font-size: 12px;
+            transform-origin: 50% 50%; font-weight: 950; font-size: 10px;
             padding-top: 22px; color: white; text-align: center;
-            clip-path: polygon(50% 50%, 34.5% 0%, 65.5% 0%);
+            clip-path: polygon(50% 50%, 34% 0%, 66% 0%);
         }
 
-        /* SPORTY BOTTOM PANEL */
+        /* INTERFACE PANEL */
         .panel {
-            width: 100%; background: #0f172a; border-top-left-radius: 30px;
-            border-top-right-radius: 30px; padding: 15px 20px 25px;
-            border-top: 2px solid rgba(255,255,255,0.05);
-            box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+            width: 100%; background: #0f172a; border-top-left-radius: 35px;
+            border-top-right-radius: 35px; padding: 20px 15px 35px;
+            border-top: 2px solid rgba(255,255,255,0.08);
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.4);
         }
 
-        .stake-selector {
-            display: flex; gap: 8px; margin-bottom: 12px; justify-content: center;
-        }
-        .stake-btn {
+        .stake-grid { display: flex; gap: 6px; margin-bottom: 12px; }
+        .stake-pill {
             background: var(--glass); border: 1px solid rgba(255,255,255,0.1);
-            padding: 8px 14px; border-radius: 10px; color: #94a3b8;
-            font-weight: 800; font-size: 11px;
+            padding: 8px; border-radius: 12px; color: #94a3b8;
+            font-weight: 900; font-size: 11px; flex: 1;
         }
-        .stake-btn.active { background: var(--white); color: var(--dark); border-color: var(--white); }
+        .stake-pill.active { background: white; color: var(--dark); border-color: white; }
+        .stake-pill.disabled { opacity: 0.2; pointer-events: none; }
 
-        .input-row { margin-bottom: 12px; position: relative; }
-        .input-box {
+        .input-wrap { margin-bottom: 15px; position: relative; }
+        #stakeInput {
             width: 100%; background: #020617; border: 2px solid #1e293b;
-            color: var(--gold); padding: 15px; border-radius: 15px;
+            color: var(--gold); padding: 14px; border-radius: 15px;
             font-size: 22px; font-weight: 950; text-align: center;
+            cursor: pointer;
+        }
+        .edit-hint {
+            position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+            font-size: 10px; color: #475569; font-weight: 800;
         }
 
-        .btn-row { display: flex; gap: 10px; }
-        .spin-btn {
+        .action-row { display: flex; gap: 8px; }
+        .btn-spin {
             flex: 1; padding: 18px; border-radius: 15px; border: none;
             background: linear-gradient(135deg, #4f46e5, #ec4899);
-            color: white; font-size: 16px; font-weight: 950; cursor: pointer;
+            color: white; font-size: 16px; font-weight: 950;
             box-shadow: 0 5px 0 #312e81; text-transform: uppercase;
         }
-        .spin-btn:active { transform: translateY(2px); box-shadow: 0 3px 0 #312e81; }
-        .spin-btn:disabled { opacity: 0.3; filter: grayscale(1); }
+        .btn-spin:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 2px 0 #312e81; }
+        .btn-spin:disabled { opacity: 0.4; filter: grayscale(1); box-shadow: none; }
 
-        .auto-btn {
-            width: 70px; background: #1e293b; border-radius: 15px;
-            border: 2px solid #334155; color: white; font-size: 10px;
-            font-weight: 900; cursor: pointer;
+        .btn-auto {
+            width: 80px; background: #1e293b; border-radius: 15px;
+            border: 2px solid #334155; color: white; font-size: 10px; font-weight: 900;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        .auto-btn.active { background: #facc15; color: #000; border-color: #fff; }
+        .btn-auto.active { background: var(--gold); color: #000; border-color: #fff; }
+        .auto-count { font-size: 12px; margin-top: 2px; }
 
-        /* OVERLAYS */
-        .overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+        #popAlert {
+            position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
+            background: white; color: black; padding: 10px 20px; border-radius: 50px;
+            font-weight: 950; z-index: 9999; box-shadow: 0 10px 40px rgba(0,0,0,0.5); transition: 0.4s;
+            font-size: 13px;
+        }
+        #popAlert.show { top: 70px; }
+
+        .modal-bg {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.92);
             display: none; justify-content: center; align-items: center; z-index: 5000;
+            backdrop-filter: blur(5px);
         }
-        .popup {
+        .modal-card {
             background: white; color: #000; width: 80%; max-width: 300px;
-            border-radius: 35px; padding: 35px 20px; text-align: center;
+            border-radius: 30px; padding: 35px 20px; text-align: center;
         }
-        .popup h2 { font-size: 32px; font-weight: 950; margin-bottom: 5px; }
-        .popup button { 
-            width: 100%; padding: 16px; border-radius: 15px; border: none;
+        .modal-card h2 { font-size: 32px; font-weight: 950; margin-bottom: 8px; }
+        .modal-card button { 
+            width: 100%; padding: 16px; border-radius: 12px; border: none;
             background: var(--dark); color: white; font-weight: 950; margin-top: 15px;
         }
 
-        #toast {
-            position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
-            background: var(--danger); color: white; padding: 8px 18px; 
-            border-radius: 10px; font-weight: 900; z-index: 6000; display: none;
+        #editModal .modal-card { background: #1e293b; color: white; }
+        #editModal input {
+            width: 100%; padding: 15px; border-radius: 12px; border: 2px solid var(--p1);
+            background: #0f172a; color: var(--gold); font-size: 24px; font-weight: 900;
+            text-align: center; margin-top: 10px;
         }
     </style>
 </head>
 <body>
 
-    <div id="toast">ERROR</div>
+    <div id="popAlert"><span></span></div>
 
     <header>
-        <a href="dashboard.html" id="exitLink" class="exit-link">✕</a>
-        <div class="bal-container">₦<span id="balUI">0.00</span></div>
+        <a href="dashboard.html" id="exitBtn" class="exit-link">✕</a>
+        <div class="bal-wrap">₦<span id="balUI">0.00</span></div>
     </header>
 
     <main class="stage">
         <div class="wheel-outer">
-            <div class="pointer"></div>
-            <div class="center-hub"></div>
-            <div id="wheelCanvas"></div>
+            <div class="pointer-needle"></div>
+            <div class="center-hub">
+                <div class="sync-pulse" id="hubSync"></div>
+            </div>
+            <div id="wheel"></div>
         </div>
 
         <div class="panel">
-            <div class="stake-selector">
-                <button class="stake-btn active" onclick="qS(50, this)">₦50</button>
-                <button class="stake-btn" onclick="qS(100, this)">₦100</button>
-                <button class="stake-btn" onclick="qS(500, this)">₦500</button>
-                <button class="stake-btn" onclick="qS(1000, this)">₦1k</button>
+            <div class="stake-grid">
+                <button class="stake-pill active" onclick="setStake(50, this)">₦50</button>
+                <button class="stake-pill" onclick="setStake(100, this)">₦100</button>
+                <button class="stake-pill" onclick="setStake(500, this)">₦500</button>
+                <button class="stake-pill" onclick="setStake(1000, this)">₦1k</button>
             </div>
             
-            <div class="input-row">
-                <input type="number" id="stake" class="input-box" value="50">
+            <div class="input-wrap" onclick="openEdit()">
+                <input type="number" id="stakeInput" value="50" readonly>
+                <span class="edit-hint">EDIT</span>
             </div>
 
-            <div class="btn-row">
-                <button id="spinBtn" class="spin-btn" onclick="pL()">SPIN WHEEL</button>
-                <button id="autoBtn" class="auto-btn" onclick="tA()">AUTO</button>
+            <div class="action-row">
+                <button id="spinBtn" class="btn-spin" disabled>SYNCING...</button>
+                <button id="autoBtn" class="btn-auto" onclick="toggleAuto()" disabled>
+                    AUTO <span class="auto-count" id="autoCount">10x</span>
+                </button>
             </div>
         </div>
     </main>
 
-    <div id="resM" class="overlay">
-        <div class="popup">
-            <h2 id="resT">RESULT</h2>
-            <p id="resG" style="font-weight:800; font-size:16px;"></p>
-            <button onclick="cM()">CONTINUE</button>
+    <div id="resModal" class="modal-bg">
+        <div class="modal-card">
+            <h2 id="resTitle">WIN!</h2>
+            <p id="resAmt" style="font-weight:900; font-size:20px; margin: 10px 0;"></p>
+            <button onclick="closeModal()">CONTINUE</button>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal-bg">
+        <div class="modal-card">
+            <h3>SET STAKE</h3>
+            <input type="number" id="customStake" placeholder="Enter amount">
+            <button onclick="applyCustomStake()" style="background: var(--p1);">CONFIRM</button>
+            <button onclick="closeEdit()" style="background: transparent; color: #94a3b8; margin-top: 5px;">CANCEL</button>
         </div>
     </div>
 
     <script>
-        // DISORDERED CONFIG & DATA
         const f_c = {
             apiKey: "AIzaSyDQ3uDQ2h61dDNeRowTpItGgrZridn3s40",
             authDomain: "swiftduel.firebaseapp.com",
@@ -202,123 +235,166 @@
             appId: "1:114652592444:web:19ce34c0a6af62c4de0639"
         };
         firebase.initializeApp(f_c);
-        const d_b = firebase.firestore();
-        const a_h = firebase.auth();
+        const db = firebase.firestore();
+        const auth = firebase.auth();
 
-        let _b = parseFloat(localStorage.getItem('swiftBalance')) || 0;
-        let _r = 0;
-        let _s = false;
-        let _am = false;
-        let _ac = 0;
+        let bal = 0, rot = 0, locked = false, isAuto = false, synced = false;
+        let autoSpinsLeft = 10;
 
-        // SCATTERED SEGMENT WEIGHTS
-        const _m = [0.1, 1.5, 0.5, 2.0, 0.1, 1.5, 0.0, 5.0, 0.2, 10.0];
-        const _cl = ['#ef4444', '#3b82f6', '#f43f5e', '#10b981', '#ef4444', '#3b82f6', '#1e293b', '#8b5cf6', '#ef4444', '#facc15'];
+        const mults = [0.1, 1.5, 0.0, 2.5, 0.1, 1.5, 0.0, 15.0, 0.2, 5.0];
+        const clrs = ['#f43f5e', '#3b82f6', '#1e293b', '#10b981', '#f43f5e', '#3b82f6', '#1e293b', '#facc15', '#ef4444', '#8b5cf6'];
 
-        const cv = document.getElementById('wheelCanvas');
-        _m.forEach((v, i) => {
-            const e = document.createElement('div');
-            e.className = 'segment';
-            e.style.transform = `rotate(${i * 36}deg)`;
-            e.style.background = _cl[i];
-            e.innerText = v + 'x';
-            cv.appendChild(e);
+        const wheel = document.getElementById('wheel');
+        mults.forEach((v, i) => {
+            const s = document.createElement('div');
+            s.className = 'segment';
+            s.style.transform = `rotate(${i * 36}deg)`;
+            s.style.background = clrs[i];
+            s.innerText = v + 'x';
+            wheel.appendChild(s);
         });
 
-        function sU(v) {
-            _b = v;
-            document.getElementById('balUI').innerText = _b.toLocaleString(undefined, {minimumFractionDigits:2});
-            localStorage.setItem('swiftBalance', _b);
+        function updateUI(v) {
+            bal = v;
+            document.getElementById('balUI').innerText = bal.toLocaleString(undefined, {minimumFractionDigits:2});
         }
 
-        a_h.onAuthStateChanged(u => {
+        auth.onAuthStateChanged(u => {
             if (u) {
-                d_b.collection('users').doc(u.uid).onSnapshot(d => {
-                    if (d.exists && !_s) sU(d.data().balance || 0);
+                document.getElementById('hubSync').style.display = 'block';
+                db.collection('users').doc(u.uid).onSnapshot(doc => {
+                    if (!locked) {
+                        updateUI(doc.data().balance || 0);
+                        if(!synced) {
+                            synced = true;
+                            enableControls();
+                        }
+                    }
                 });
             }
         });
 
-        function qS(v, b) {
-            if(_s) return;
-            document.getElementById('stake').value = v;
-            document.querySelectorAll('.stake-btn').forEach(x => x.classList.remove('active'));
-            b.classList.add('active');
+        function enableControls() {
+            const btn = document.getElementById('spinBtn');
+            btn.innerText = "SPIN WHEEL";
+            btn.disabled = false;
+            btn.onclick = start;
+            document.getElementById('autoBtn').disabled = false;
+            document.getElementById('hubSync').style.display = 'none';
         }
 
-        function tA() {
-            if(_s) return;
-            _am = !_am;
-            _ac = _am ? 10 : 0;
-            document.getElementById('autoBtn').classList.toggle('active', _am);
-            if(_am) pL();
+        function setStake(v, b) {
+            if(locked) return;
+            document.getElementById('stakeInput').value = v;
+            document.querySelectorAll('.stake-pill').forEach(x => x.classList.remove('active'));
+            if(b) b.classList.add('active');
         }
 
-        // DISORDERED LOGIC ENGINE
-        async function pL() {
-            if(_s) return;
-            const k = parseFloat(document.getElementById('stake').value);
-            if(k < 50 || k > _b) return;
+        function openEdit() {
+            if(locked) return;
+            document.getElementById('editModal').style.display = 'flex';
+            document.getElementById('customStake').focus();
+        }
 
-            _s = true;
-            document.getElementById('spinBtn').disabled = true;
-            document.getElementById('exitLink').classList.add('locked');
-            
-            sU(_b - k);
-            const r_f = d_b.collection('users').doc(a_h.currentUser.uid);
-            r_f.update({ balance: firebase.firestore.FieldValue.increment(-k) });
+        function closeEdit() { document.getElementById('editModal').style.display = 'none'; }
 
-            // Scattered calculation of result index
-            let x;
-            const _seed = Math.random();
-            const _isH = k >= 500 || k > (_b * 0.4);
-            
-            // 70% Loss Bias + Mixed logic
-            if (_seed < 0.70 || _isH) {
-                const _lS = [0, 2, 4, 6, 8];
-                x = _lS[Math.floor(Math.random() * 5)];
-            } else {
-                const _wS = [1, 3, 5, 7, 9];
-                x = _wS[Math.floor(Math.random() * 5)];
+        function applyCustomStake() {
+            const val = parseInt(document.getElementById('customStake').value);
+            if(val >= 50) {
+                setStake(val, null);
+                closeEdit();
+            } else { pop("Min ₦50"); }
+        }
+
+        function toggleAuto() {
+            if(locked) return;
+            isAuto = !isAuto;
+            autoSpinsLeft = 10;
+            document.getElementById('autoCount').innerText = "10x";
+            document.getElementById('autoBtn').classList.toggle('active', isAuto);
+            if(isAuto) start();
+        }
+
+        async function start() {
+            if(locked || !synced) return;
+            const amt = parseFloat(document.getElementById('stakeInput').value);
+
+            if(amt < 50 || amt > bal) {
+                isAuto = false;
+                document.getElementById('autoBtn').classList.remove('active');
+                return pop(amt < 50 ? "Min ₦50" : "Low Bal");
             }
 
-            const _rotA = (360 * 6) + (360 - (_r % 360)) - (x * 36);
-            _r += _rotA;
-            cv.style.transform = `rotate(${_r}deg)`;
+            locked = true;
+            uiState(true);
+            updateUI(bal - amt);
 
+            const ref = db.collection('users').doc(auth.currentUser.uid);
+            await ref.update({ balance: firebase.firestore.FieldValue.increment(-amt) });
+
+            // CUNNY RIGGING
+            let idx;
+            const seed = Math.random();
+            if (seed < 0.72 || amt > (bal * 0.4)) {
+                idx = [0, 2, 4, 6, 8][Math.floor(Math.random() * 5)];
+            } else {
+                idx = [1, 3, 5, 9][Math.floor(Math.random() * 4)];
+                if(Math.random() > 0.98) idx = 7;
+            }
+
+            const move = (360 * 6) + (360 - (rot % 360)) - (idx * 36);
+            rot += move;
+            wheel.style.transform = `rotate(${rot}deg)`;
+
+            // TURBO TIMING: Match with CSS 2s transition
             setTimeout(async () => {
-                const _wN = Math.floor(k * _m[x]);
-                sU(_b + _wN);
-                await r_f.update({ balance: firebase.firestore.FieldValue.increment(_wN) });
+                const win = Math.floor(amt * mults[idx]);
+                updateUI(bal + win);
+                await ref.update({ balance: firebase.firestore.FieldValue.increment(win) });
 
-                if(_am && _ac > 1 && _b >= k) {
-                    _ac--;
-                    _s = false;
-                    setTimeout(pL, 1000);
+                if(isAuto) {
+                    autoSpinsLeft--;
+                    document.getElementById('autoCount').innerText = autoSpinsLeft + "x";
+                    
+                    if(autoSpinsLeft > 0 && bal >= amt) {
+                        locked = false;
+                        setTimeout(start, 500); // Fast 0.5s pause between turbo spins
+                    } else {
+                        isAuto = false;
+                        document.getElementById('autoBtn').classList.remove('active');
+                        document.getElementById('autoCount').innerText = "10x";
+                        show(mults[idx], win);
+                    }
                 } else {
-                    _am = false;
-                    document.getElementById('autoBtn').classList.remove('active');
-                    hR(_m[x], _wN);
+                    show(mults[idx], win);
                 }
-            }, 4600);
+            }, 2100); 
         }
 
-        function hR(m, w) {
-            _s = false;
-            document.getElementById('spinBtn').disabled = false;
-            document.getElementById('exitLink').classList.remove('locked');
-            const t = document.getElementById('resT');
-            t.innerText = m >= 1 ? "WINNER!" : "RETRY";
+        function uiState(l) {
+            document.getElementById('spinBtn').disabled = l;
+            document.getElementById('exitBtn').classList.toggle('locked', l);
+            document.querySelectorAll('.stake-pill').forEach(x => x.classList.toggle('disabled', l));
+        }
+
+        function show(m, w) {
+            locked = false;
+            uiState(false);
+            const t = document.getElementById('resTitle');
+            t.innerText = m >= 1 ? "WINNER!" : "TRY AGAIN";
             t.style.color = m >= 1 ? "var(--success)" : "var(--danger)";
-            document.getElementById('resG').innerText = `Value: ₦${w.toLocaleString()}`;
-            document.getElementById('resM').style.display = 'flex';
+            document.getElementById('resAmt').innerText = m >= 1 ? `₦${w.toLocaleString()}` : "LOSE";
+            document.getElementById('resModal').style.display = 'flex';
         }
 
-        function cM() {
-            document.getElementById('resM').style.display = 'none';
+        function closeModal() { document.getElementById('resModal').style.display = 'none'; }
+        
+        function pop(m) {
+            const a = document.getElementById('popAlert');
+            a.querySelector('span').innerText = m;
+            a.classList.add('show');
+            setTimeout(() => a.classList.remove('show'), 2000);
         }
-
-        sU(_b);
     </script>
 </body>
 </html>
