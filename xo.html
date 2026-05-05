@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SwiftDuel | Predator Prism Elite</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -11,152 +11,207 @@
 
     <style>
         :root {
-            --primary: #4f46e5; --danger: #ef4444; --success: #22c55e;
-            --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --gold: #eab308;
+            --primary: #6366f1; 
+            --danger: #f43f5e; 
+            --success: #10b981;
+            --bg: #070b14; 
+            --card: rgba(30, 41, 59, 0.6); 
+            --text: #f8fafc; 
+            --gold: #facc15;
+            --neon: 0 0 25px rgba(99, 102, 241, 0.4);
         }
 
         * { 
-            box-sizing: border-box; -webkit-tap-highlight-color: transparent; 
-            outline: none; user-select: none;
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent; 
+            outline: none; 
+            user-select: none;
+            margin: 0; padding: 0;
         }
 
         body {
-            margin: 0; padding: 0; height: 100vh;
+            height: 100dvh; width: 100vw;
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background: var(--bg); color: var(--text);
-            display: flex; flex-direction: column; overflow: hidden;
+            background: #020617;
+            color: var(--text);
+            display: flex; flex-direction: column; 
+            overflow: hidden; position: fixed;
         }
 
-        /* Notifications / Custom Alerts */
+        .prism-bg {
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 50% -20%, #1e1b4b, #020617);
+            z-index: -1;
+        }
+
         #toast {
             position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
-            background: var(--text); color: white; padding: 15px 30px;
-            border-radius: 50px; font-weight: 800; font-size: 14px;
-            z-index: 5000; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2); border: 2px solid var(--primary);
+            background: #fff; color: #000; padding: 12px 28px;
+            border-radius: 50px; font-weight: 950; font-size: 13px;
+            z-index: 5000; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
         }
-        #toast.active { top: 20px; }
+        #toast.active { top: 25px; }
 
         header { 
-            padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; 
-            background: var(--card); border-bottom: 1px solid #e2e8f0; z-index: 100;
+            height: 70px; width: 100%; padding: 0 20px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 100;
         }
+
+        #exitBtn {
+            text-decoration: none; color: #fff; font-weight: 900; 
+            background: rgba(255,255,255,0.1); width: 32px; height: 32px; 
+            display: flex; align-items: center; justify-content: center; 
+            border-radius: 8px; transition: 0.3s;
+        }
+        #exitBtn.disabled { opacity: 0.1; pointer-events: none; filter: blur(2px); }
 
         .bal-pill { 
-            background: #1e293b; color: #fff; padding: 10px 20px; 
-            border-radius: 50px; font-weight: 900; font-size: 14px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            background: #fff; color: #000; padding: 8px 18px; 
+            border-radius: 50px; font-weight: 950; font-size: 14px;
+            box-shadow: var(--neon);
         }
 
-        .scroll-container {
-            flex: 1; overflow-y: auto; display: flex; flex-direction: column; 
-            align-items: center; padding: 20px; -webkit-overflow-scrolling: touch;
+        .arena-main {
+            flex: 1; display: flex; flex-direction: column; 
+            align-items: center; justify-content: space-evenly;
+            padding: 10px 20px; z-index: 10; position: relative;
         }
 
-        .status-box { text-align: center; margin-bottom: 25px; }
-        .status-box h1 { margin: 0; font-size: 24px; font-weight: 950; letter-spacing: -0.5px; }
-        #subtext { font-size: 10px; font-weight: 800; color: #64748b; letter-spacing: 2px; margin-top: 6px; text-transform: uppercase; }
+        .status-box { text-align: center; }
+        .status-box h1 { 
+            font-size: 24px; font-weight: 950; letter-spacing: -1px;
+            background: linear-gradient(to bottom, #fff, #6366f1);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        #subtext { 
+            font-size: 9px; font-weight: 900; color: #6366f1; 
+            letter-spacing: 4px; margin-top: 5px; text-transform: uppercase;
+        }
+
+        .board-container {
+            width: 100%; max-width: 320px;
+            aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center;
+        }
 
         .board {
             display: grid; grid-template-columns: repeat(3, 1fr);
-            gap: 15px; width: 100%; max-width: 350px;
-            aspect-ratio: 1/1; margin-bottom: 30px;
-            touch-action: none;
+            gap: 10px; width: 100%; height: 100%;
         }
 
         .cell {
-            background: var(--card); border-radius: 24px;
+            background: var(--card); border-radius: 18px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 50px; font-weight: 950;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.03), inset 0 -4px 0 #f1f5f9;
-            border: 2px solid #e2e8f0; transition: transform 0.1s;
+            font-size: 42px; font-weight: 950;
+            border: 1px solid rgba(255,255,255,0.08); 
+            transition: 0.15s;
         }
-        .cell.taken { pointer-events: none; transform: scale(0.98); background: #f8fafc; }
-        .cell.x { color: var(--primary); }
-        .cell.o { color: var(--danger); }
+        .cell.taken { pointer-events: none; opacity: 0.8; }
+        .cell.x { color: #fff; text-shadow: 0 0 15px var(--primary); }
+        .cell.o { color: var(--danger); text-shadow: 0 0 15px var(--danger); }
+        .cell:active { transform: scale(0.92); }
 
-        .bet-card {
-            width: 100%; max-width: 350px; background: var(--card);
-            padding: 25px; border-radius: 35px; border: 1px solid #e2e8f0;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.05); margin-bottom: 50px;
+        #betSection {
+            width: 100%; max-width: 320px; 
+            background: rgba(30, 41, 59, 0.4);
+            padding: 15px; border-radius: 25px; 
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(5px);
+            transition: 0.5s cubic-bezier(0.4, 0, 1, 1);
         }
+        #betSection.hidden { opacity: 0; transform: translateY(50px) scale(0.9); pointer-events: none; visibility: hidden; }
 
-        .input-group { position: relative; margin-bottom: 15px; }
-        .input-group span { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); font-weight: 900; color: var(--gold); font-size: 18px; }
+        .input-group { position: relative; margin-bottom: 10px; }
+        .input-group span { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); font-weight: 900; color: var(--gold); }
         .bet-input {
-            width: 100%; padding: 18px 18px 18px 40px; border-radius: 18px;
-            border: 2px solid #f1f5f9; background: #f8fafc; font-size: 20px; 
-            font-weight: 900; color: var(--text);
+            width: 100%; padding: 14px 14px 14px 35px; border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.4); font-size: 18px; 
+            font-weight: 950; color: var(--gold); text-align: center;
         }
 
         .action-btn {
-            width: 100%; padding: 20px; border-radius: 18px; border: none;
-            background: var(--text); color: white; font-weight: 900;
-            text-transform: uppercase; letter-spacing: 1px; cursor: pointer;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            width: 100%; padding: 16px; border-radius: 12px; border: none;
+            background: linear-gradient(135deg, #6366f1, #4338ca);
+            color: white; font-weight: 950; font-size: 14px;
+            text-transform: uppercase; letter-spacing: 2px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
         }
 
         .overlay {
-            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9);
+            position: fixed; inset: 0; background: rgba(2, 6, 23, 0.98);
             display: none; justify-content: center; align-items: center; z-index: 2000;
-            backdrop-filter: blur(8px);
         }
         .modal {
-            background: white; padding: 45px 30px; border-radius: 40px;
-            text-align: center; width: 88%; max-width: 320px;
-            transform: scale(0.9); transition: 0.3s;
+            background: #1e293b; padding: 35px 25px; border-radius: 30px; 
+            border: 1px solid rgba(255,255,255,0.1);
+            text-align: center; width: 85%; max-width: 300px;
         }
-        .overlay.show .modal { transform: scale(1); }
-        
-        .modal h2 { font-size: 36px; margin: 0; font-weight: 950; }
-        .modal p { color: #64748b; font-weight: 700; margin: 15px 0 30px; font-size: 18px; }
+        .modal h2 { font-size: 38px; font-weight: 950; margin-bottom: 10px; }
+        .modal p { color: #94a3b8; font-weight: 700; margin-bottom: 25px; font-size: 18px; }
         .modal button {
-            width: 100%; padding: 18px; border: none; border-radius: 18px;
-            background: var(--primary); color: white; font-weight: 900; font-size: 16px;
+            width: 100%; padding: 15px; border: none; border-radius: 12px;
+            background: #fff; color: #000; font-weight: 950;
+        }
+
+        .system-logs {
+            width: 100%; display: flex; justify-content: space-between;
+            padding: 5px 20px; font-size: 8px; font-weight: 800; color: #475569;
+            text-transform: uppercase; letter-spacing: 1px;
         }
     </style>
 </head>
 <body>
 
+    <div class="prism-bg"></div>
+
     <div id="toast">MINIMUM ₦50</div>
 
     <header>
-        <a href="game.html" style="text-decoration:none; color:#94a3b8; font-size: 24px;">✕</a>
+        <a href="game.html" id="exitBtn">✕</a>
         <div class="bal-pill">₦<span id="balDisplay">0.00</span></div>
     </header>
 
-    <div class="scroll-container">
+    <main class="arena-main">
         <div class="status-box">
-            <h1>PREDATOR ELITE</h1>
-            <div id="subtext">WAITING FOR STAKE</div>
+            <h1>PRISM ELITE</h1>
+            <div id="subtext">System Synchronized</div>
         </div>
 
-        <div id="board" class="board">
-            <div class="cell" data-index="0"></div>
-            <div class="cell" data-index="1"></div>
-            <div class="cell" data-index="2"></div>
-            <div class="cell" data-index="3"></div>
-            <div class="cell" data-index="4"></div>
-            <div class="cell" data-index="5"></div>
-            <div class="cell" data-index="6"></div>
-            <div class="cell" data-index="7"></div>
-            <div class="cell" data-index="8"></div>
+        <div class="board-container">
+            <div id="board" class="board">
+                <div class="cell" data-index="0"></div>
+                <div class="cell" data-index="1"></div>
+                <div class="cell" data-index="2"></div>
+                <div class="cell" data-index="3"></div>
+                <div class="cell" data-index="4"></div>
+                <div class="cell" data-index="5"></div>
+                <div class="cell" data-index="6"></div>
+                <div class="cell" data-index="7"></div>
+                <div class="cell" data-index="8"></div>
+            </div>
         </div>
 
-        <div class="bet-card">
+        <div id="betSection">
             <div class="input-group">
                 <span>₦</span>
-                <input type="number" id="stakeInput" class="bet-input" value="100">
+                <input type="number" id="stakeInput" class="bet-input" placeholder="0">
             </div>
-            <button id="stakeBtn" class="action-btn" onclick="initiateDuel()">CONFIRM & DUEL</button>
+            <button id="stakeBtn" class="action-btn" onclick="initiateDuel()">CONFIRM DUEL</button>
         </div>
+    </main>
+
+    <div class="system-logs">
+        <span>Prism_Neural_V4</span>
+        <span>Secure_Connection_Established</span>
     </div>
 
     <div id="resOverlay" class="overlay">
         <div class="modal">
             <h2 id="resHeader">WON</h2>
             <p id="resSub"></p>
-            <button onclick="closeResult()">NEXT ROUND</button>
+            <button onclick="closeResult()">CONTINUE</button>
         </div>
     </div>
 
@@ -189,18 +244,21 @@
         }
 
         async function initiateDuel() {
-            const stake = parseFloat(document.getElementById('stakeInput').value);
-            if(stake < 50) return showToast("MINIMUM ₦50 REQUIRED");
+            const stakeRaw = document.getElementById('stakeInput').value;
+            const stake = parseFloat(stakeRaw);
+
+            // FIX: Validate that stake is a real number and not empty
+            if(!stakeRaw || isNaN(stake) || stake < 50) return showToast("MINIMUM ₦50 REQUIRED");
             if(stake > userBalance) return showToast("INSUFFICIENT BALANCE");
+
+            document.getElementById('betSection').classList.add('hidden');
+            document.getElementById('exitBtn').classList.add('disabled');
 
             isDuelActive = true;
             updateBalanceRemote(-stake);
             
-            document.getElementById('stakeBtn').style.opacity = "0.3";
-            document.getElementById('stakeBtn').disabled = true;
-
             if(firstTurn === "ai") {
-                document.getElementById('subtext').innerText = "AI IS OPENING...";
+                document.getElementById('subtext').innerText = "AI PREPARING...";
                 setTimeout(() => {
                     const aiMove = minimax(boardState, aiSym, stake >= (userBalance * 0.5)).idx;
                     applyCellMove(aiMove, aiSym);
@@ -220,8 +278,8 @@
                 if(checkWin(boardState, pSym)) return concludeDuel("win");
                 if(boardState.every(s => s !== "")) return concludeDuel("draw");
 
-                isDuelActive = false; // Block user double tap
-                document.getElementById('subtext').innerText = "AI PREDICTING...";
+                isDuelActive = false;
+                document.getElementById('subtext').innerText = "AI THINKING...";
                 
                 setTimeout(() => {
                     const stake = parseFloat(document.getElementById('stakeInput').value);
@@ -278,6 +336,9 @@
         async function updateBalanceRemote(amt) {
             const user = auth.currentUser;
             if(user) {
+                // Ensuring we don't send NaN to the database
+                if(isNaN(amt)) return; 
+                
                 await db.collection('users').doc(user.uid).update({ balance: firebase.firestore.FieldValue.increment(amt) });
                 const snap = await db.collection('users').doc(user.uid).get();
                 userBalance = snap.data().balance;
@@ -294,32 +355,30 @@
             const s = document.getElementById('resSub');
 
             if(res === "win") {
-                h.innerText = "VICTORY"; h.style.color = "var(--success)";
+                h.innerText = "WON"; h.style.color = "var(--success)";
                 s.innerText = `+ ₦${(stake * 0.95).toFixed(2)}`;
                 updateBalanceRemote(stake * 1.95);
-                firstTurn = "ai"; // AI starts next after being beaten
+                firstTurn = "ai";
             } else if(res === "draw") {
-                h.innerText = "TIED"; h.style.color = "#64748b";
-                s.innerText = "Stake Refunded";
+                h.innerText = "TIED"; h.style.color = "#94a3b8";
+                s.innerText = "Refunded";
                 updateBalanceRemote(stake);
                 firstTurn = (firstTurn === "ai") ? "player" : "ai";
             } else {
-                h.innerText = "BUSTED"; h.style.color = "var(--danger)";
+                h.innerText = "LOSE"; h.style.color = "var(--danger)";
                 s.innerText = `- ₦${stake.toFixed(2)}`;
-                firstTurn = "player"; // Human starts next to recover
+                firstTurn = "player";
             }
             overlay.style.display = "flex";
-            overlay.classList.add('show');
         }
 
         function closeResult() {
             boardState = ["", "", "", "", "", "", "", "", ""];
             document.querySelectorAll('.cell').forEach(c => { c.innerText = ""; c.className = 'cell'; });
             document.getElementById('resOverlay').style.display = "none";
-            document.getElementById('resOverlay').classList.remove('show');
-            document.getElementById('stakeBtn').style.opacity = "1";
-            document.getElementById('stakeBtn').disabled = false;
-            document.getElementById('subtext').innerText = "STAKE READY";
+            document.getElementById('betSection').classList.remove('hidden');
+            document.getElementById('exitBtn').classList.remove('disabled');
+            document.getElementById('subtext').innerText = "DUEL READY";
         }
     </script>
 </body>

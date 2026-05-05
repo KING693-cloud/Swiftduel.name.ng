@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SwiftDuel | Rocket Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SwiftDuel | Rocket Pro Elite</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -15,51 +15,61 @@
             --gold: #facc15; --danger: #ff3e3e; --success: #10b981;
             --glass: rgba(255, 255, 255, 0.05);
             --font: 'Inter', system-ui, -apple-system, sans-serif;
+            --neon: 0 0 20px rgba(239, 68, 68, 0.3);
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; outline: none; }
+        /* STRICT VIEWPORT LOCK */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; outline: none; user-select: none; }
 
         body {
             height: 100dvh; width: 100vw; font-family: var(--font);
-            background: var(--dark); color: white; display: flex; flex-direction: column; 
+            background: #020617; color: white; display: flex; flex-direction: column; 
             overflow: hidden; position: fixed;
         }
 
+        .prism-bg {
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 50% 0%, #1e1b4b, #020617);
+            z-index: -1;
+        }
+
         header { 
-            width: 100%; padding: 12px 18px; display: flex; justify-content: space-between; 
-            align-items: center; background: rgba(15, 23, 42, 0.95); z-index: 100;
+            height: 70px; width: 100%; padding: 0 18px; display: flex; justify-content: space-between; 
+            align-items: center; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.05); z-index: 100;
         }
         
-        .nav-btn { 
+        #exitBtn { 
             color: white; text-decoration: none; font-weight: 800; background: var(--glass); 
-            padding: 8px 14px; border-radius: 12px; font-size: 10px; border: 1px solid rgba(255,255,255,0.1);
+            width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; 
+            justify-content: center; transition: 0.3s;
         }
-        .nav-btn.locked { opacity: 0.1; pointer-events: none; filter: blur(4px); }
+        #exitBtn.locked { opacity: 0.1; pointer-events: none; filter: blur(4px); }
 
         .bal-wrap { 
-            background: white; color: var(--dark); padding: 7px 15px; border-radius: 20px; 
-            font-weight: 950; font-size: 14px; cursor: pointer;
+            background: white; color: var(--dark); padding: 8px 18px; border-radius: 50px; 
+            font-weight: 950; font-size: 14px; box-shadow: 0 0 15px rgba(255,255,255,0.2);
         }
 
-        /* STAGE */
-        .stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; }
+        /* GAME STAGE */
+        .stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; z-index: 10; }
         .radar { position: relative; width: 260px; height: 260px; display: flex; align-items: center; justify-content: center; }
 
         .loader-svg { position: absolute; width: 100%; height: 100%; transform: rotate(-90deg); }
-        .loader-svg circle { fill: none; stroke-width: 5; stroke-dasharray: 754; stroke-linecap: round; }
+        .loader-svg circle { fill: none; stroke-width: 5; stroke-dasharray: 754; stroke-linecap: round; transition: 0.1s linear; }
         
         #betRing { stroke: var(--success); display: none; }
         #syncRing { stroke: var(--danger); display: none; stroke-dashoffset: 0; }
         .blink { animation: blinker 0.6s infinite; }
         @keyframes blinker { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
 
-        .supernova {
+        .blast-wave {
             position: absolute; width: 100%; height: 100%;
-            background: radial-gradient(circle, var(--danger) 0%, transparent 60%);
+            background: radial-gradient(circle, var(--danger) 0%, transparent 70%);
             opacity: 0; pointer-events: none; z-index: 4; border-radius: 50%;
         }
-        .supernova.active { animation: supernovaEffect 0.6s ease-out forwards; }
-        @keyframes supernovaEffect { 0% { transform: scale(0.4); opacity: 0; } 100% { transform: scale(1.1); opacity: 0; } }
+        .blast-wave.active { animation: supernovaEffect 0.6s ease-out forwards; }
+        @keyframes supernovaEffect { 0% { transform: scale(0.4); opacity: 0; } 100% { transform: scale(1.2); opacity: 0; } }
 
         .orbit {
             position: relative; width: 210px; height: 210px;
@@ -68,61 +78,67 @@
         }
 
         #rocket {
-            position: absolute; width: 18px; height: 18px; background: var(--p1); 
-            border-radius: 50%; box-shadow: 0 0 15px var(--p1);
-            top: -9px; left: 50%; margin-left: -9px; transform-origin: center 114px;
+            position: absolute; width: 20px; height: 20px; background: var(--p1); 
+            border-radius: 50%; box-shadow: var(--neon);
+            top: -10px; left: 50%; margin-left: -10px; transform-origin: center 115px;
             display: none; z-index: 6;
         }
 
-        .mult-val { font-size: 50px; font-weight: 950; text-align: center; z-index: 10; letter-spacing: -2px; }
-        .status-txt { position: absolute; top: -10%; width: 100%; text-align: center; font-size: 9px; font-weight: 950; color: var(--gold); letter-spacing: 3px; }
+        .mult-val { font-size: 52px; font-weight: 950; text-align: center; z-index: 10; letter-spacing: -2px; }
+        .status-txt { position: absolute; top: -15%; width: 100%; text-align: center; font-size: 9px; font-weight: 950; color: var(--gold); letter-spacing: 4px; text-transform: uppercase; }
 
-        /* DASHBOARD */
-        .terminal { background: #0f172a; padding: 25px 15px 45px; border-top-left-radius: 40px; border-top-right-radius: 40px; }
-        .panel { background: rgba(2, 6, 23, 0.6); padding: 15px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.05); }
+        /* CONTROL TERMINAL */
+        .terminal { background: #0f172a; padding: 25px 20px 45px; border-top-left-radius: 40px; border-top-right-radius: 40px; box-shadow: 0 -10px 40px rgba(0,0,0,0.5); }
+        .panel { background: rgba(2, 6, 23, 0.6); padding: 18px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.05); }
 
-        .row { display: flex; gap: 10px; margin-bottom: 15px; }
+        .row { display: flex; gap: 12px; margin-bottom: 15px; }
         .col { flex: 1; display: flex; flex-direction: column; gap: 6px; }
         .col label { font-size: 8px; font-weight: 900; color: #64748b; text-transform: uppercase; text-align: center; }
 
-        /* INPUTS LOCK STATE */
-        .stepper { display: flex; align-items: center; background: #010410; border-radius: 14px; border: 1px solid #1e293b; height: 50px; overflow: hidden; transition: 0.3s; }
-        .stepper.locked { opacity: 0.3; pointer-events: none; border-color: #ef4444; }
+        .stepper { display: flex; align-items: center; background: #010410; border-radius: 15px; border: 1px solid #1e293b; height: 55px; overflow: hidden; transition: 0.3s; }
+        .stepper.locked { opacity: 0.3; pointer-events: none; background: #070b14; }
         
-        .s-btn { width: 40px; height: 100%; background: none; border: none; color: white; font-size: 22px; }
-        .val-i { flex: 1; background: none; border: none; color: var(--gold); text-align: center; font-size: 18px; font-weight: 900; width: 30px; -moz-appearance: textfield; }
-        .val-i::-webkit-inner-spin-button, .val-i::-webkit-outer-spin-button { -webkit-appearance: none; }
+        .s-btn { width: 45px; height: 100%; background: none; border: none; color: white; font-size: 22px; cursor: pointer; }
+        .val-i { flex: 1; background: none; border: none; color: var(--gold); text-align: center; font-size: 20px; font-weight: 950; width: 30px; }
 
         .btn-main {
-            width: 100%; height: 70px; border-radius: 20px; border: none;
-            background: #1e293b; color: white; font-size: 20px; font-weight: 950;
-            text-transform: uppercase; box-shadow: 0 7px 0 #000;
+            width: 100%; height: 75px; border-radius: 20px; border: none;
+            background: #1e293b; color: white; font-size: 18px; font-weight: 950;
+            text-transform: uppercase; letter-spacing: 1px; transition: 0.2s;
+            box-shadow: 0 6px 0 #000;
         }
-        .btn-main.bet-on { background: var(--success); box-shadow: 0 7px 0 #064e3b; }
-        .btn-main.cash-on { background: var(--gold); color: #000; box-shadow: 0 7px 0 #a16207; }
-        .btn-main:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 3px 0 #000; }
-        .btn-main:disabled { opacity: 0.4; }
+        .btn-main.bet-on { background: var(--success); box-shadow: 0 6px 0 #065f46; }
+        .btn-main.cash-on { background: var(--gold); color: #000; box-shadow: 0 6px 0 #a16207; }
+        .btn-main:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 2px 0 #000; }
+        .btn-main:disabled { opacity: 0.4; pointer-events: none; }
 
         #alert-box {
             position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
-            background: #fff; color: #000; padding: 12px 25px; border-radius: 50px;
-            font-weight: 900; font-size: 13px; z-index: 2000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transition: 0.4s;
+            background: #fff; color: #000; padding: 12px 30px; border-radius: 50px;
+            font-weight: 950; font-size: 13px; z-index: 2000; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        #alert-box.show { top: 80px; }
+        #alert-box.show { top: 85px; }
+
+        .system-logs {
+            width: 100%; display: flex; justify-content: space-between;
+            padding: 10px 20px; font-size: 8px; font-weight: 800; color: #475569;
+            text-transform: uppercase; letter-spacing: 1px; background: #0f172a;
+        }
     </style>
 </head>
 <body>
 
+    <div class="prism-bg"></div>
     <div id="alert-box"><span></span></div>
 
     <header>
-        <a href="game.html" id="exitBtn" class="nav-btn">✕ LEAVE</a>
-        <div class="bal-wrap" id="balDisplay" onclick="adminEdit()">₦<span id="uiBal">0.00</span></div>
+        <a href="game.html" id="exitBtn">✕</a>
+        <div class="bal-wrap">₦<span id="uiBal">0.00</span></div>
     </header>
 
     <main class="stage">
-        <div class="status-txt" id="stateTag">READY</div>
-        <div class="supernova" id="blast"></div>
+        <div class="status-txt" id="stateTag">INITIALIZING</div>
+        <div class="blast-wave" id="blast"></div>
         
         <div class="radar">
             <svg class="loader-svg">
@@ -140,7 +156,7 @@
         <div class="panel">
             <div class="row">
                 <div class="col">
-                    <label>STAKE</label>
+                    <label>STAKE AMOUNT</label>
                     <div class="stepper" id="s1">
                         <button class="s-btn" onclick="adj('stake', -50)">−</button>
                         <input type="number" id="stake" class="val-i" value="100" readonly>
@@ -148,7 +164,7 @@
                     </div>
                 </div>
                 <div class="col">
-                    <label>AUTO</label>
+                    <label>AUTO CASHOUT</label>
                     <div class="stepper" id="s2">
                         <button class="s-btn" onclick="adj('auto', -0.1)">−</button>
                         <input type="number" id="auto" class="val-i" value="2.0" step="0.1" readonly>
@@ -158,6 +174,11 @@
             </div>
             <button id="mainBtn" class="btn-main" onclick="handleInput()">SYNCING...</button>
         </div>
+    </div>
+
+    <div class="system-logs">
+        <span>ROCKET_CORE_V4</span>
+        <span>LATENCY: 12ms</span>
     </div>
 
     <script>
@@ -173,25 +194,20 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        let bal = 0, isBet = false, isQ = false, isOut = false, ridCur = 0, clicks = 0;
+        let bal = 0, isBet = false, isQ = false, isOut = false, ridCur = 0;
 
-        function setBal(n) { 
-            bal = Math.max(0, n); 
-            document.getElementById('uiBal').innerText = bal.toLocaleString(undefined, {minimumFractionDigits:2});
+        function showPop(msg) {
+            const p = document.getElementById('alert-box');
+            p.querySelector('span').innerText = msg;
+            p.classList.add('show');
+            setTimeout(() => p.classList.remove('show'), 2500);
         }
 
-        function adminEdit() {
-            clicks++;
-            if(clicks >= 5) {
-                const n = prompt("Enter Amount:", bal);
-                if(n && !isNaN(n)) {
-                    const v = parseFloat(n);
-                    setBal(v);
-                    db.collection('users').doc(auth.currentUser.uid).update({ balance: v });
-                }
-                clicks = 0;
-            }
-            setTimeout(() => clicks = 0, 2000);
+        function setBal(n) { 
+            if(isNaN(n)) n = 0;
+            bal = Math.max(0, n); 
+            document.getElementById('uiBal').innerText = bal.toLocaleString(undefined, {minimumFractionDigits:2});
+            localStorage.setItem('swiftBalance', bal.toFixed(2));
         }
 
         auth.onAuthStateChanged(u => {
@@ -201,6 +217,7 @@
         });
 
         function adj(id, v) {
+            if(isBet || isQ) return;
             let el = document.getElementById(id), n = parseFloat(el.value) + v;
             if(id==='auto') n = Math.max(1.1, parseFloat(n.toFixed(1)));
             if(id==='stake') n = Math.max(50, Math.floor(n));
@@ -225,83 +242,87 @@
                 sR.classList.remove('blink');
             }
 
-            // LOCK ALL UI IF BETTING
-            const active = isBet || isQ;
-            nav.classList.toggle('locked', active);
-            s1.classList.toggle('locked', active);
-            s2.classList.toggle('locked', active);
+            // UI LOCKING LOGIC
+            const activeSession = isBet || isQ;
+            nav.classList.toggle('locked', activeSession);
+            s1.classList.toggle('locked', activeSession);
+            s2.classList.toggle('locked', activeSession);
 
             if (ms < 5000) {
-                tag.innerText = `BETTING WINDOW: ${5 - Math.floor(ms/1000)}S`;
+                tag.innerText = `WAITING FOR LAUNCH: ${5 - Math.floor(ms/1000)}S`;
                 bR.style.display = 'block'; sR.style.display = 'none';
                 bR.style.strokeDashoffset = 754 - (ms/5000) * 754;
                 rkt.style.display = 'none'; txt.innerText = "1.00x";
-                if(!isBet && !isQ) { btn.disabled = false; btn.innerText = "PLACE BET"; btn.className = "btn-main bet-on"; }
-                else { btn.disabled = true; btn.innerText = isQ ? "QUEUED" : "LOCKED IN"; }
+                
+                if(!isBet && !isQ) { 
+                    btn.disabled = false; btn.innerText = "LAUNCH ROCKET"; btn.className = "btn-main bet-on"; 
+                } else { 
+                    btn.disabled = true; btn.innerText = isQ ? "QUEUED" : "LOCKED IN"; 
+                }
             } 
-            else if (ms < 12500) {
+            else if (ms < 13000) {
                 bR.style.display = 'none';
                 const elap = (ms - 5000) / 1000;
-                const crash = getHardLogic(rid);
-                const mult = 1.0 + (elap * 0.35) * (1 + elap/4.5);
+                const crash = getHouseLogic(rid);
+                const mult = 1.0 + (elap * 0.35) * (1 + elap/5);
 
                 if (mult < crash) {
-                    tag.innerText = "IN FLIGHT"; sR.style.display = 'none';
-                    rkt.style.display = 'block'; rkt.style.transform = `rotate(${elap * 140}deg)`;
+                    tag.innerText = "FLIGHT IN PROGRESS"; sR.style.display = 'none';
+                    rkt.style.display = 'block'; rkt.style.transform = `rotate(${elap * 130}deg)`;
                     txt.innerText = mult.toFixed(2) + "x";
+                    
                     if (isBet && !isOut) {
                         const target = parseFloat(document.getElementById('auto').value);
                         if (mult >= target) doCashout(mult);
                         else {
                             btn.disabled = false; btn.className = "btn-main cash-on";
-                            btn.innerText = `CASH ₦${Math.floor(parseFloat(document.getElementById('stake').value)*mult)}`;
+                            const potential = Math.floor(parseFloat(document.getElementById('stake').value)*mult);
+                            btn.innerText = `CASHOUT ₦${potential}`;
                             window.vM = mult;
                         }
-                    } else { btn.disabled = true; btn.innerText = isOut ? "WON!" : "LIVE"; }
+                    } else { 
+                        btn.disabled = true; btn.innerText = isOut ? "SECURED" : "FLYING"; 
+                    }
                 } else {
                     if(!blast.classList.contains('active')) blast.classList.add('active');
-                    tag.innerText = "CRASHED!"; rkt.style.display = 'none';
-                    txt.innerText = "LOST!"; txt.style.color = "var(--danger)";
-                    btn.disabled = true; btn.innerText = "OVER";
+                    tag.innerText = "EXPLODED!"; rkt.style.display = 'none';
+                    txt.innerText = "BOOM!"; txt.style.color = "var(--danger)";
+                    btn.disabled = true; btn.innerText = "CRASHED";
                     sR.style.display = 'block'; sR.classList.add('blink');
                 }
             } else {
-                tag.innerText = "PREPARING..."; bR.style.display = 'none';
+                tag.innerText = "RELOADING..."; bR.style.display = 'none';
                 rkt.style.display = 'none'; btn.disabled = true;
                 sR.style.display = 'block'; sR.classList.add('blink');
             }
             requestAnimationFrame(engine);
         }
 
-        // HARD HOUSE LOGIC: 7 Losses (Very low crash) / 3 Wins (Limited)
-        function getHardLogic(id) {
+        function getHouseLogic(id) {
             const stake = parseFloat(document.getElementById('stake').value);
-            const ratio = stake / bal;
-            let seed = (id * 41.3) % 10;
+            const ratio = stake / (bal + stake);
+            let seed = (id * 47.9) % 10;
 
-            // MASS PROTECTION: If user bets 50% balance, swallow instantly
-            if (activeBet() && ratio >= 0.5) return 1.01 + (seed / 100);
+            // PROTECT HOUSE: If user bets > 40% of balance, crash very early
+            if (isBet && ratio >= 0.4) return 1.05 + (seed / 80);
 
-            // 7:3 SCATTER
-            const wins = [(id*3)%10, (id*7)%10, (id*9)%10];
-            const isWin = wins.includes(id % 10);
-
-            if (isWin) {
-                // Winning round: Usually ~2.5x, occasionally 3x.
-                return 2.1 + (seed % 1.2); 
+            // 70/30 Distribution (Loss/Win)
+            const wins = [(id*2)%10, (id*5)%10, (id*8)%10];
+            if (wins.includes(id % 10)) {
+                return 2.2 + (seed % 1.5); // Win: 2.2x to 3.7x
             } else {
-                // Scalp-Killer: Most losses happen before 1.12x to kill "safe" bets
-                return 1.02 + (seed / 45); 
+                return 1.03 + (seed / 50); // Loss: 1.03x to 1.2x
             }
         }
 
-        function activeBet() { return isBet || isQ; }
-
         async function handleInput() {
             const btn = document.getElementById('mainBtn');
+            const stakeInp = document.getElementById('stake').value;
+            const amt = parseFloat(stakeInp);
+
             if (btn.classList.contains('bet-on')) {
-                const amt = parseFloat(document.getElementById('stake').value);
-                if (amt < 50 || amt > bal) return showPop(amt < 50 ? "Min ₦50" : "Low Funds");
+                if (!stakeInp || isNaN(amt) || amt < 50) return showPop("MIN STAKE ₦50");
+                if (amt > bal) return showPop("INSUFFICIENT FUNDS");
 
                 btn.disabled = true;
                 const ms = Date.now() % 15000;
@@ -311,29 +332,24 @@
                 await db.collection('users').doc(auth.currentUser.uid).update({ 
                     balance: firebase.firestore.FieldValue.increment(-amt) 
                 });
-            } else if (btn.classList.contains('cash-on')) doCashout();
+            } else if (btn.classList.contains('cash-on')) {
+                doCashout();
+            }
         }
 
-        async function doCashout(m = null) {
+        async function doCashout(forcedMult = null) {
             if(isOut || !isBet) return;
             isOut = true;
-            const res = m || window.vM;
+            const res = forcedMult || window.vM;
             const win = Math.floor(parseFloat(document.getElementById('stake').value) * res);
             
             setBal(bal + win);
             document.getElementById('multUI').style.color = "var(--success)";
-            showPop(`WON ₦${win}`, "win");
+            showPop(`WIN +₦${win}`);
 
             await db.collection('users').doc(auth.currentUser.uid).update({ 
                 balance: firebase.firestore.FieldValue.increment(win) 
             });
-        }
-
-        function showPop(msg) {
-            const p = document.getElementById('alert-box');
-            p.className = `show`;
-            p.querySelector('span').innerText = msg;
-            setTimeout(() => p.classList.remove('show'), 2500);
         }
 
         engine();

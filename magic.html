@@ -2,355 +2,148 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SwiftDuel | Magic Cups Predator</title>
-    
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
     <style>
-        :root {
-            --p1: #6366f1; --p2: #ec4899; --dark: #070b14;
-            --white: #ffffff; --gold: #facc15; --glass: rgba(255,255,255,0.08);
-            --danger: #ff4757; --success: #2ed573;
-        }
-
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; margin: 0; padding: 0; user-select: none; }
-
-        body {
-            width: 100vw; height: 100dvh;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background: radial-gradient(circle at top, #1e1b4b, #070b14);
-            color: white; display: flex; flex-direction: column; overflow: hidden;
-        }
-
-        /* CUSTOM TOAST NOTIFICATION */
-        #toast {
-            position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
-            background: var(--danger); color: white; padding: 12px 25px;
-            border-radius: 50px; font-weight: 800; font-size: 13px;
-            z-index: 5000; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        #toast.active { top: 20px; }
-
-        header { 
-            width: 100%; padding: 15px 20px; 
-            display: flex; justify-content: space-between; align-items: center; 
-            background: rgba(7, 11, 20, 0.95); border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-        
-        .exit-btn { 
-            color: white; text-decoration: none; font-size: 20px; font-weight: 900; 
-            background: var(--glass); width: 42px; height: 42px; 
-            display: flex; align-items: center; justify-content: center; border-radius: 12px; 
-        }
-
-        .bal-pill { 
-            background: var(--white); color: var(--dark); padding: 10px 22px; 
-            border-radius: 50px; font-weight: 950; font-size: 15px;
-            box-shadow: 0 4px 15px rgba(255,255,255,0.1);
-        }
-
-        .container {
-            flex: 1; display: flex; flex-direction: column;
-            justify-content: space-evenly; align-items: center; padding: 20px;
-        }
-
-        .header-text { text-align: center; }
-        .header-text h1 { font-size: 28px; font-weight: 950; letter-spacing: -1px; }
-        #subStatus { color: var(--p2); font-size: 11px; font-weight: 900; letter-spacing: 3px; margin-top: 8px; text-transform: uppercase; }
-
-        /* MAGIC TABLE AREA */
-        .stage {
-            width: 100%; max-width: 400px; height: 250px; 
-            display: flex; justify-content: center; align-items: flex-end; 
-            position: relative; margin: 20px 0;
-        }
-
-        .floor {
-            width: 95%; height: 6px; background: rgba(255,255,255,0.1);
-            border-radius: 20px; box-shadow: 0 0 25px rgba(99, 102, 241, 0.4);
-            position: absolute; bottom: 0;
-        }
-
-        .cup-node {
-            position: absolute; width: 85px; height: 120px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex; flex-direction: column; align-items: center;
-            bottom: 6px; z-index: 10;
-        }
-
-        .cup {
-            width: 80px; height: 100px;
-            background: linear-gradient(160deg, #4f46e5, #312e81);
-            clip-path: polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%);
-            border-radius: 10px; cursor: pointer;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .cup.lifted { transform: translateY(-80px) rotate(-8deg); }
-
-        .ball {
-            width: 32px; height: 32px; 
-            background: radial-gradient(circle at 30% 30%, #ff79c6, #bd93f9);
-            border-radius: 50%; position: absolute; bottom: 5px;
-            box-shadow: 0 0 20px var(--p2); z-index: 1;
-            display: none; border: 2px solid rgba(255,255,255,0.3);
-        }
-
-        /* STAKE CONTROLS */
-        .bet-panel {
-            width: 100%; max-width: 360px; padding: 25px;
-            background: var(--glass); border-radius: 30px; 
-            border: 1px solid rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-        }
-
-        .input-row { position: relative; display: flex; align-items: center; margin-bottom: 15px; }
-        .input-row span { position: absolute; left: 18px; font-weight: 900; color: var(--gold); font-size: 20px; }
-        .input-row input {
-            width: 100%; background: rgba(0,0,0,0.5); border: 2px solid #1e293b;
-            color: white; padding: 18px 18px 18px 45px; border-radius: 18px;
-            font-size: 24px; font-weight: 900;
-        }
-
-        .btn-start {
-            width: 100%; padding: 20px; border-radius: 18px; border: none;
-            background: white; color: var(--dark);
-            font-size: 15px; font-weight: 950; cursor: pointer;
-            text-transform: uppercase; letter-spacing: 1px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.2); transition: 0.2s;
-        }
-        .btn-start:active { transform: scale(0.96); }
-
-        /* WIN/LOSS OVERLAY */
-        .overlay {
-            position: fixed; inset: 0; background: rgba(7, 11, 20, 0.98);
-            display: none; justify-content: center; align-items: center; z-index: 3000;
-            backdrop-filter: blur(12px);
-        }
-        .modal {
-            background: white; color: var(--dark); padding: 45px 30px; border-radius: 40px;
-            text-align: center; width: 88%; max-width: 320px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-            animation: modalIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        @keyframes modalIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        
-        .modal h2 { font-size: 38px; font-weight: 950; margin-bottom: 10px; }
-        .modal p { color: #64748b; font-weight: 700; margin-bottom: 30px; font-size: 17px; }
-        .modal button { 
-            padding: 20px; border-radius: 20px; border: none; font-weight: 900; 
-            width: 100%; text-transform: uppercase; font-size: 14px;
-            background: var(--p1); color: white;
-        }
+        :root { --p1: #6366f1; --p2: #ec4899; --dark: #020617; --gold: #facc15; --danger: #ff4757; --success: #2ed573; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; user-select: none; }
+        body { width: 100vw; height: 100dvh; font-family: system-ui, sans-serif; background: radial-gradient(circle at 50% 0%, #1e1b4b, #020617); color: white; display: flex; flex-direction: column; overflow: hidden; position: fixed; }
+        header { height: 70px; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.05); }
+        #exitBtn { color: white; text-decoration: none; font-weight: 900; background: rgba(255,255,255,0.05); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 12px; }
+        #exitBtn.locked { display: none; }
+        .bal-pill { background: white; color: var(--dark); padding: 8px 18px; border-radius: 50px; font-weight: 950; font-size: 14px; }
+        .container { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; align-items: center; padding: 20px; }
+        #subStatus { color: var(--p1); font-size: 10px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; margin-top: 10px; }
+        .stage { width: 100%; max-width: 360px; height: 200px; display: flex; justify-content: center; align-items: flex-end; position: relative; }
+        .cup-node { position: absolute; width: 80px; height: 110px; transition: all 0.25s ease; bottom: 5px; z-index: 10; display: flex; justify-content: center; }
+        .cup { width: 75px; height: 95px; background: linear-gradient(160deg, #4f46e5, #1e1b4b); clip-path: polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%); border-radius: 10px; cursor: pointer; transition: 0.4s; }
+        .cup.lifted { transform: translateY(-75px); }
+        .ball { width: 25px; height: 25px; background: radial-gradient(circle at 30% 30%, #ff79c6, #bd93f9); border-radius: 50%; position: absolute; bottom: 5px; box-shadow: 0 0 15px var(--p2); display: none; }
+        .bet-panel { width: 100%; max-width: 340px; padding: 20px; background: rgba(30, 41, 59, 0.4); border-radius: 25px; backdrop-filter: blur(10px); }
+        .bet-panel.locked { opacity: 0.1; pointer-events: none; transform: scale(0.95); }
+        .input-row { position: relative; margin-bottom: 15px; }
+        .input-row span { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); font-weight: 900; color: var(--gold); }
+        .input-row input { width: 100%; background: #000; border: 1px solid #334155; color: white; padding: 15px 15px 15px 40px; border-radius: 15px; font-size: 22px; font-weight: 900; text-align: center; }
+        .btn-start { width: 100%; padding: 18px; border-radius: 15px; border: none; background: white; color: black; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; }
+        .overlay { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.98); display: none; justify-content: center; align-items: center; z-index: 5000; }
+        .modal { background: white; color: black; padding: 40px 30px; border-radius: 35px; text-align: center; width: 85%; }
+        #toast { position: fixed; top: -100px; left: 50%; transform: translateX(-50%); background: var(--danger); padding: 12px 25px; border-radius: 50px; font-weight: 900; transition: 0.5s; z-index: 6000; }
+        #toast.show { top: 20px; }
     </style>
 </head>
 <body>
-
-    <div id="toast">MINIMUM ₦50</div>
-
+    <div id="toast">ERROR</div>
     <header>
-        <a href="game.html" class="exit-btn">✕</a>
-        <div class="bal-pill">₦<span id="balDisplay">0.00</span></div>
+        <a href="game.html" id="exitBtn">✕</a>
+        <div class="bal-pill">₦<span id="uiBal">0.00</span></div>
     </header>
-
     <div class="container">
-        <div class="header-text">
-            <h1>MAGIC CUPS</h1>
-            <div id="subStatus">READY TO PLAY</div>
-        </div>
-
+        <div style="text-align:center"><h1>MAGIC CUPS</h1><div id="subStatus">READY</div></div>
         <div class="stage">
-            <div class="floor"></div>
-            <div class="cup-node" id="node0" style="left: 0%;">
-                <div class="cup" onclick="selectCup(0)"></div>
-                <div class="ball" id="theBall"></div>
-            </div>
-            <div class="cup-node" id="node1" style="left: 38%;">
-                <div class="cup" onclick="selectCup(1)"></div>
-            </div>
-            <div class="cup-node" id="node2" style="left: 76%;">
-                <div class="cup" onclick="selectCup(2)"></div>
-            </div>
+            <div class="cup-node" id="n0" style="left:0%"><div class="cup" onclick="tapCup(0)"></div><div class="ball" id="ball"></div></div>
+            <div class="cup-node" id="n1" style="left:38%"><div class="cup" onclick="tapCup(1)"></div></div>
+            <div class="cup-node" id="n2" style="left:76%"><div class="cup" onclick="tapCup(2)"></div></div>
         </div>
-
         <div id="betPanel" class="bet-panel">
-            <div class="input-row">
-                <span>₦</span>
-                <input type="number" id="stake" value="100" inputmode="decimal">
-            </div>
-            <button class="btn-start" onclick="initShuffle()">SHUFFLE & TRACK</button>
+            <div class="input-row"><span>₦</span><input type="number" id="stake" value="100"></div>
+            <button id="playBtn" class="btn-start" onclick="start()">START SHUFFLE</button>
         </div>
     </div>
-
     <div id="resOverlay" class="overlay">
-        <div class="modal">
-            <h2 id="resTitle">WON</h2>
-            <p id="resSub"></p>
-            <button onclick="restart()">NEXT ROUND</button>
-        </div>
+        <div class="modal"><h2 id="resTitle" style="font-size:40px">LOSS</h2><p id="resSub" style="margin:10px 0 25px; font-weight:700"></p><button onclick="reset()" style="width:100%; padding:18px; border:none; border-radius:15px; background:black; color:white; font-weight:900">CONTINUE</button></div>
     </div>
+<script>
+    const config = { apiKey: "AIzaSyDQ3uDQ2h61dDNeRowTpItGgrZridn3s40", authDomain: "swiftduel.firebaseapp.com", projectId: "swiftduel", storageBucket: "swiftduel.firebasestorage.app", messagingSenderId: "114652592444", appId: "1:114652592444:web:19ce34c0a6af62c4de0639" };
+    firebase.initializeApp(config);
+    const db = firebase.firestore(), auth = firebase.auth();
+    let bal = 0, active = false, clickable = false, pos = [0,1,2], winIdx = 0;
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyDQ3uDQ2h61dDNeRowTpItGgrZridn3s40",
-            authDomain: "swiftduel.firebaseapp.com",
-            projectId: "swiftduel",
-            storageBucket: "swiftduel.firebasestorage.app",
-            messagingSenderId: "114652592444",
-            appId: "1:114652592444:web:19ce34c0a6af62c4de0639"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
+    function msg(t) { const e = document.getElementById('toast'); e.innerText = t; e.classList.add('show'); setTimeout(()=>e.classList.remove('show'), 2000); }
+    function sync(v) { bal = v; document.getElementById('uiBal').innerText = bal.toLocaleString(undefined,{minimumFractionDigits:2}); localStorage.setItem('swiftBalance', bal); }
+    
+    function genEntropy() {
+        let m = ["W","W","L","L","L","L","L","L","L","L"];
+        for(let i=9; i>0; i--){ let j=Math.floor(Math.random()*(i+1)); [m[i], m[j]]=[m[j], m[i]]; }
+        localStorage.setItem('c_entropy', JSON.stringify(m)); localStorage.setItem('c_ptr', "0");
+    }
+    if(!localStorage.getItem('c_entropy')) genEntropy();
 
-        let bal = parseFloat(localStorage.getItem('swiftBalance')) || 0;
-        let shuffling = false, canClick = false;
-        let positions = [0, 1, 2];
-        let winId = 0; 
+    auth.onAuthStateChanged(u => { if(u) db.collection('users').doc(u.uid).onSnapshot(s => { if(!active) sync(s.data().balance||0); }); });
 
-        function notify(msg) {
-            const t = document.getElementById('toast');
-            t.innerText = msg;
-            t.classList.add('active');
-            setTimeout(() => t.classList.remove('active'), 2500);
-        }
+    async function start() {
+        const s = parseFloat(document.getElementById('stake').value);
+        if(isNaN(s)||s<50) return msg("MIN ₦50");
+        if(s>bal) return msg("NO FUNDS");
+        active = true; document.getElementById('betPanel').classList.add('locked'); document.getElementById('exitBtn').classList.add('locked');
+        sync(bal - s);
+        await db.collection('users').doc(auth.currentUser.uid).update({ balance: firebase.firestore.FieldValue.increment(-s) });
+        
+        const b = document.getElementById('ball');
+        winIdx = Math.floor(Math.random()*3);
+        const node = document.getElementById(`n${winIdx}`);
+        node.appendChild(b); b.style.display="block";
+        node.querySelector('.cup').classList.add('lifted');
+        
+        setTimeout(()=>{
+            node.querySelector('.cup').classList.remove('lifted');
+            setTimeout(()=>{ b.style.display="none"; shuffle(0); }, 500);
+        }, 1000);
+    }
 
-        function setBal(v) {
-            bal = v;
-            document.getElementById('balDisplay').innerText = bal.toLocaleString(undefined, {minimumFractionDigits:2});
-            localStorage.setItem('swiftBalance', bal);
-        }
+    function shuffle(c) {
+        if(c > 12) { clickable = true; document.getElementById('subStatus').innerText = "PICK ONE"; return; }
+        let a = Math.floor(Math.random()*3), b; do { b = Math.floor(Math.random()*3); } while(a===b);
+        [pos[a], pos[b]] = [pos[b], pos[a]];
+        document.getElementById(`n${pos[0]}`).style.left = "0%";
+        document.getElementById(`n${pos[1]}`).style.left = "38%";
+        document.getElementById(`n${pos[2]}`).style.left = "76%";
+        setTimeout(()=>shuffle(c+1), 200);
+    }
 
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                db.collection('users').doc(user.uid).onSnapshot(doc => {
-                    if (doc.exists && !shuffling && !canClick) setBal(doc.data().balance || 0);
-                });
+    async function tapCup(id) {
+        if(!clickable) return; clickable = false;
+        const s = parseFloat(document.getElementById('stake').value);
+        let ent = JSON.parse(localStorage.getItem('c_entropy')), ptr = parseInt(localStorage.getItem('c_ptr'));
+        if(ptr >= 10) { genEntropy(); ent = JSON.parse(localStorage.getItem('c_entropy')); ptr = 0; }
+        
+        let res = ent[ptr]; localStorage.setItem('c_ptr', ptr + 1);
+        if(s >= (bal+s)*0.5) res = "L";
+
+        let finalWin = winIdx;
+        if(res==="L" && id===winIdx) finalWin = [0,1,2].find(x => x!==id);
+        if(res==="W" && id!==winIdx) finalWin = id;
+
+        const b = document.getElementById('ball');
+        document.getElementById(`n${finalWin}`).appendChild(b); b.style.display="block";
+        document.querySelectorAll('.cup').forEach(c => c.classList.add('lifted'));
+
+        setTimeout(async () => {
+            const win = (id === finalWin);
+            if(win) {
+                const p = s * 2.8; sync(bal + p);
+                await db.collection('users').doc(auth.currentUser.uid).update({ balance: firebase.firestore.FieldValue.increment(p) });
+                document.getElementById('resTitle').innerText = "WON";
+                document.getElementById('resSub').innerText = `+₦${p.toFixed(0)}`;
+            } else {
+                document.getElementById('resTitle').innerText = "LOSS";
+                document.getElementById('resSub').innerText = "Titan took it.";
             }
-        });
+            document.getElementById('resOverlay').style.display = "flex";
+        }, 800);
+    }
 
-        async function initShuffle() {
-            const stake = parseFloat(document.getElementById('stake').value);
-            if (stake < 50) return notify("MIN STAKE ₦50");
-            if (stake > bal) return notify("INSUFFICIENT BALANCE");
-
-            shuffling = true;
-            canClick = false;
-            
-            // Local Sync & DB update
-            setBal(bal - stake);
-            await db.collection('users').doc(auth.currentUser.uid).update({ 
-                balance: firebase.firestore.FieldValue.increment(-stake) 
-            });
-            
-            document.getElementById('betPanel').style.opacity = "0.2";
-            document.getElementById('betPanel').style.pointerEvents = "none";
-            document.getElementById('subStatus').innerText = "BALL SECURED. TRACKING...";
-
-            // Start Animation: Lift winner, show ball, drop, shuffle
-            const ball = document.getElementById('theBall');
-            const target = document.querySelector(`#node${winId} .cup`);
-            ball.style.display = "block";
-            target.classList.add('lifted');
-
-            setTimeout(() => {
-                target.classList.remove('lifted');
-                setTimeout(() => {
-                    ball.style.display = "none";
-                    performShuffle(0);
-                }, 400);
-            }, 1000);
-        }
-
-        function performShuffle(count) {
-            if (count >= 15) {
-                shuffling = false;
-                canClick = true;
-                document.getElementById('subStatus').innerText = "PICK THE WINNING CUP!";
-                return;
-            }
-
-            let a = Math.floor(Math.random() * 3);
-            let b;
-            do { b = Math.floor(Math.random() * 3); } while (a === b);
-
-            let tmp = positions[a];
-            positions[a] = positions[b];
-            positions[b] = tmp;
-
-            document.getElementById(`node${positions[0]}`).style.left = "0%";
-            document.getElementById(`node${positions[1]}`).style.left = "38%";
-            document.getElementById(`node${positions[2]}`).style.left = "76%";
-
-            setTimeout(() => performShuffle(count + 1), 220);
-        }
-
-        function selectCup(id) {
-            if (!canClick) return;
-            canClick = false;
-
-            const stake = parseFloat(document.getElementById('stake').value);
-            const ball = document.getElementById('theBall');
-
-            // --- CUNNY LOGIC ENGINE ---
-            // If user bets over 50% of their money, AI swaps ball 90% of the time.
-            if (stake >= (bal * 0.50)) {
-                if (Math.random() < 0.90) {
-                    let others = [0, 1, 2].filter(x => x !== id);
-                    winId = others[Math.floor(Math.random() * others.length)];
-                }
-            }
-
-            const winWrapper = document.getElementById(`node${winId}`);
-            winWrapper.appendChild(ball);
-            ball.style.display = "block";
-
-            // Lift all cups to reveal
-            document.querySelectorAll('.cup').forEach(c => c.classList.add('lifted'));
-
-            setTimeout(async () => {
-                const overlay = document.getElementById('resOverlay');
-                const head = document.getElementById('resTitle');
-                const sub = document.getElementById('resSub');
-
-                if (id === winId) {
-                    const winAmt = stake * 2.8;
-                    await db.collection('users').doc(auth.currentUser.uid).update({ 
-                        balance: firebase.firestore.FieldValue.increment(winAmt) 
-                    });
-                    head.innerText = "VICTORY";
-                    head.style.color = "var(--success)";
-                    sub.innerText = `Eagle Eye! You found ₦${winAmt.toFixed(0)}`;
-                } else {
-                    head.innerText = "TRICKED";
-                    head.style.color = "var(--danger)";
-                    sub.innerText = `The ball moved! You lost ₦${stake.toFixed(0)}`;
-                }
-                overlay.style.display = "flex";
-            }, 800);
-        }
-
-        function restart() {
-            document.getElementById('resOverlay').style.display = "none";
-            document.querySelectorAll('.cup').forEach(c => c.classList.remove('lifted'));
-            document.getElementById('theBall').style.display = "none";
-            document.getElementById('betPanel').style.opacity = "1";
-            document.getElementById('betPanel').style.pointerEvents = "all";
-            document.getElementById('subStatus').innerText = "READY TO PLAY";
-            
-            // Randomize next winner for variety
-            winId = Math.floor(Math.random() * 3);
-            shuffling = false;
-            canClick = false;
-        }
-
-        setBal(bal);
-    </script>
+    function reset() {
+        document.getElementById('resOverlay').style.display="none";
+        document.querySelectorAll('.cup').forEach(c => c.classList.remove('lifted'));
+        document.getElementById('ball').style.display="none";
+        document.getElementById('betPanel').classList.remove('locked');
+        document.getElementById('exitBtn').classList.remove('locked');
+        active = false;
+    }
+    sync(bal);
+</script>
 </body>
 </html>
